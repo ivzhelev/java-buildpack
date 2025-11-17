@@ -1,0 +1,206 @@
+---
+resources:
+- name: java-buildpack
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/cloudfoundry/java-buildpack.git
+    branch: main
+
+- name: java-buildpack-system-test
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/cloudfoundry/java-buildpack-system-test.git
+    branch: main
+
+- name: cf-deployment
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/cloudfoundry/cf-deployment.git
+    branch: main
+
+- name: cf-deployment-concourse-tasks
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/cloudfoundry/cf-deployment-concourse-tasks.git
+    branch: main
+
+- name: buildpack-version
+  type: semver
+  icon: tag
+  source:
+    driver: s3
+    bucket: buildpacks.cloudfoundry.org
+    key: versions/java-buildpack/version
+    access_key_id: ((buildpacks-cloudfoundry-org-aws-access-key-id))
+    secret_access_key: ((buildpacks-cloudfoundry-org-aws-secret-access-key))
+    region_name: us-east-1
+    initial_version: 4.80.0
+
+- name: buildpack-github-release
+  type: github-release
+  icon: github
+  source:
+    owner: cloudfoundry
+    repository: java-buildpack
+    access_token: ((github_access_token))
+
+jobs:
+- name: unit-tests
+  public: true
+  plan:
+  - get: java-buildpack
+    trigger: true
+  - task: run-unit-tests
+    file: java-buildpack/ci/tasks/unit-tests/task.yml
+
+- name: build-buildpack
+  public: true
+  plan:
+  - in_parallel:
+    - get: java-buildpack
+      passed: [unit-tests]
+      trigger: true
+    - get: buildpack-version
+      params: {bump: patch}
+  - task: build-online-buildpack
+    file: java-buildpack/ci/tasks/build-buildpack/task.yml
+  - put: buildpack-version
+    params: {file: buildpack-version/version}
+
+- name: test-buildpack
+  public: true
+  serial: true
+  plan:
+  - in_parallel:
+    - get: java-buildpack
+      passed: [build-buildpack]
+      trigger: true
+    - get: java-buildpack-system-test
+    - get: cf-deployment
+    - get: cf-deployment-concourse-tasks
+  
+  # Step 1: Create CF environment with BBL
+  - task: bbl-up
+    file: cf-deployment-concourse-tasks/bbl-up/task.yml
+    output_mapping:
+      updated-bbl-state: bbl-state
+    params:
+      BBL_IAAS: gcp
+      BBL_GCP_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
+      BBL_GCP_REGION: europe-north1
+      BBL_ENV_NAME: java-buildpack-ci
+      BBL_LB_CERT: ((shared-cf-cert.certificate))
+      BBL_LB_KEY: ((shared-cf-cert.private_key))
+      LB_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
+      BBL_STATE_DIR: .
+    input_mapping:
+      bbl-state: updated-bbl-state
+      bbl-config: bosh-bootloader/plan-patches/spot-gcp
+  
+  - task: add-to-gcp-dns
+    file: runtime-ci/tasks/manage-gcp-dns/task.yml
+    image: cf-deployment-concourse-tasks
+    params:
+      BBL_STATE_DIR: bump-deployments/bbl-gcp-cf
+      GCP_DNS_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
+      GCP_DNS_ZONE_NAME: bootloader-ci
+      GCP_DNS_RECORD_SET_NAME: bump-deployments-cf.bbl.ci.cloudfoundry.org
+      ACTION: add
+    input_mapping:
+      bbl-state: updated-bbl-state
+    on_failure:
+      task: destroy-infrastructure
+      file: cf-deployment-concourse-tasks/bbl-destroy/task.yml
+      image: cf-deployment-concourse-tasks
+      input_mapping:
+        bbl-state: updated-bbl-state
+      params:
+        BBL_STATE_DIR: bump-deployments/bbl-gcp-cf
+        BBL_GCP_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
+  
+  # Step 3: Deploy Cloud Foundry
+  - task: bosh-deploy-cf
+    file: cf-deployment-concourse-tasks/bosh-deploy/task.yml
+    input_mapping:
+      bbl-state: bbl-state
+      cf-deployment: cf-deployment
+      ops-files: cf-deployment
+      vars-files: bbl-state
+    output_mapping:
+      updated-bbl-state: bbl-state
+    params:
+      SYSTEM_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
+      BBL_STATE_DIR: bbl-state
+      OPS_FILES: |
+        operations/use-compiled-releases.yml
+        operations/experimental/fast-deploy-with-downtime-and-danger.yml
+        operations/scale-to-one-az.yml
+        operations/experimental/use-spot-instances.yml
+
+  # Step 4: Run system tests
+  - task: run-system-tests
+    file: java-buildpack/ci/tasks/system-tests/task.yml
+    input_mapping:
+      built-buildpack: java-buildpack
+    params:
+      SYSTEM_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
+    ensure:
+      do:
+      # Step 5: Cleanup BOSH environment
+      - task: bosh-cleanup
+        file: cf-deployment-concourse-tasks/bosh-cleanup/task.yml
+        input_mapping:
+          bbl-state: bbl-state
+        output_mapping:
+          updated-bbl-state: bbl-state
+        params:
+          BBL_STATE_DIR: .
+      
+      # Step 6: Remove DNS records
+      - task: remove-from-gcp-dns
+        file: runtime-ci/tasks/manage-gcp-dns/task.yml
+        image: cf-deployment-concourse-tasks
+        params:
+          BBL_STATE_DIR: bbl-state
+          GCP_DNS_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
+          GCP_DNS_ZONE_NAME: buildpacks-ci
+          GCP_DNS_RECORD_SET_NAME: java-buildpack-cf.bbl.ci.cloudfoundry.org
+          ACTION: remove
+        input_mapping:
+          bbl-state: updated-bbl-state
+      
+      # Step 7: Destroy infrastructure
+      - task: bbl-destroy
+        file: cf-deployment-concourse-tasks/bbl-destroy/task.yml
+        input_mapping:
+          bbl-state: bbl-state
+        params:
+          BBL_STATE_DIR: bbl-state
+          BBL_GCP_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
+
+- name: ship-it
+  public: true
+  serial: true
+  plan:
+  - in_parallel:
+    - get: java-buildpack
+      passed: [test-buildpack]
+    - get: buildpack-version
+  
+  - task: create-release
+    file: java-buildpack/ci/tasks/create-release/task.yml
+  
+  - put: buildpack-github-release
+    params:
+      name: release/name
+      tag: release/tag
+      body: release/body
+      globs:
+      - release/java-buildpack-*.zip
+  
+  - put: buildpack-version
+    params: {bump: minor}

@@ -1,0 +1,14 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ruby
+    tag: 3.2
+
+inputs:
+- name: java-buildpack
+
+run:
+  path: java-buildpack/ci/tasks/unit-tests/run.sh

@@ -1,0 +1,18 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: ruby
+    tag: 3.2
+
+inputs:
+- name: java-buildpack
+- name: buildpack-version
+
+outputs:
+- name: release
+
+run:
+  path: java-buildpack/ci/tasks/create-release/run.sh
