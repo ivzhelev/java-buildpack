@@ -1,0 +1,96 @@
+package integration_test
+
+import (
+	"path/filepath"
+	"testing"
+
+	"github.com/cloudfoundry/switchblade"
+	"github.com/sclevine/spec"
+
+	. "github.com/onsi/gomega"
+)
+
+func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
+	return func(t *testing.T, context spec.G, it spec.S) {
+		var (
+			Expect = NewWithT(t).Expect
+			name   string
+		)
+
+		it.Before(func() {
+			var err error
+			name, err = switchblade.RandomName()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it.After(func() {
+			if name != "" {
+				Expect(platform.Delete.Execute(name)).To(Succeed())
+			}
+		})
+
+		context("in offline mode", func() {
+			it("deploys without internet access", func() {
+				deployment, logs, err := platform.Deploy.
+					WithoutInternetAccess().
+					WithEnv(map[string]string{
+						"BP_JAVA_VERSION": "11",
+					}).
+					Execute(name, filepath.Join(fixtures, "integration_valid"))
+				Expect(err).NotTo(HaveOccurred(), logs.String)
+
+				// In offline mode, all dependencies should be cached
+				Expect(logs.String()).To(Or(
+					ContainSubstring("Downloading"),
+					ContainSubstring("cached"),
+				))
+				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+			})
+		})
+
+		context("with cached buildpack", func() {
+			it("uses cached dependencies", func() {
+				deployment, logs, err := platform.Deploy.
+					WithoutInternetAccess().
+					WithEnv(map[string]string{
+						"BP_JAVA_VERSION": "11",
+					}).
+					Execute(name, filepath.Join(fixtures, "integration_valid"))
+				Expect(err).NotTo(HaveOccurred(), logs.String)
+
+				// Should not attempt external downloads
+				Expect(logs.String()).NotTo(ContainSubstring("ERROR"))
+				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+			})
+		})
+
+		context("with offline JRE", func() {
+			it("successfully deploys with cached JRE", func() {
+				deployment, logs, err := platform.Deploy.
+					WithoutInternetAccess().
+					WithEnv(map[string]string{
+						"BP_JAVA_VERSION": "11",
+					}).
+					Execute(name, filepath.Join(fixtures, "integration_valid"))
+				Expect(err).NotTo(HaveOccurred(), logs.String)
+
+				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
+				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+			})
+		})
+
+		context("with offline Tomcat", func() {
+			it("successfully deploys with cached Tomcat", func() {
+				deployment, logs, err := platform.Deploy.
+					WithoutInternetAccess().
+					WithEnv(map[string]string{
+						"BP_JAVA_VERSION": "11",
+					}).
+					Execute(name, filepath.Join(fixtures, "integration_valid"))
+				Expect(err).NotTo(HaveOccurred(), logs.String)
+
+				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+			})
+		})
+	}
+}
