@@ -1,5 +1,5 @@
 ---
-require:
+plugins:
   - rubocop-rspec
 
 AllCops:
@@ -67,7 +67,7 @@ Lint/EmptyBlock:
 RSpec/MultipleMemoizedHelpers:
   Max: 10
 RSpec/VerifiedDoubleReference:
-  EnforcedStyle: string
+  Enabled: false
 Style/OptionalBooleanParameter:
   Enabled: false
 Lint/RedundantCopDisableDirective:
