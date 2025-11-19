@@ -76,7 +76,7 @@ module Package
 
   BUILDPACK_VERSION = JavaBuildpack::BuildpackVersion.new(false).freeze
 
-  PLATFORMS = %w[jammy noble].freeze
+  PLATFORMS = %w[jammy].freeze
 
   STAGING_DIR = "#{BUILD_DIR}/staging".freeze
 
