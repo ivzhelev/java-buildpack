@@ -41,7 +41,7 @@ func TestIntegration(t *testing.T) {
 	var Expect = NewWithT(t).Expect
 
 	format.MaxLength = 0
-	SetDefaultEventuallyTimeout(30 * time.Second)
+	SetDefaultEventuallyTimeout(20 * time.Second)
 
 	root, err := filepath.Abs("./../../")
 	Expect(err).NotTo(HaveOccurred())
@@ -64,12 +64,22 @@ func TestIntegration(t *testing.T) {
 	)
 	Expect(err).NotTo(HaveOccurred())
 
-	suite := spec.New("integration", spec.Report(report.Terminal{}), spec.Parallel())
+	var suite spec.Suite
+	if settings.Serial {
+		suite = spec.New("integration", spec.Report(report.Terminal{}), spec.Sequential())
+	} else {
+		suite = spec.New("integration", spec.Report(report.Terminal{}), spec.Parallel())
+	}
 
 	// Core container tests
 	suite("Tomcat", testTomcat(platform, fixtures))
 	suite("SpringBoot", testSpringBoot(platform, fixtures))
 	suite("JavaMain", testJavaMain(platform, fixtures))
+	suite("Groovy", testGroovy(platform, fixtures))
+	suite("Ratpack", testRatpack(platform, fixtures))
+	suite("Play", testPlay(platform, fixtures))
+	suite("DistZip", testDistZip(platform, fixtures))
+	suite("SpringBootCLI", testSpringBootCLI(platform, fixtures))
 
 	// Offline/Cache tests
 	if settings.Cached {
