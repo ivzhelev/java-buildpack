@@ -27,16 +27,16 @@ start_docker() {
     mount -o remount,rw /proc/sys
   fi
 
+  # Install dockerd v24.0.9 to match the Docker client API version (1.43)
+  # The cfbuildpacks/ci image has Docker client v24 (API 1.43), but the worker's dockerd is newer
+  echo "Installing dockerd v24.0.9 to match Docker client API 1.43..."
+  curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.0.9.tgz | \
+    tar xz --strip-components=1 -C /usr/local/bin docker/dockerd
+  chmod +x /usr/local/bin/dockerd
+
   # Start dockerd in background
   dockerd --data-root /scratch/docker --mtu 1200 >/tmp/docker.log 2>&1 &
   echo $! > /tmp/docker.pid
-  
-  # Upgrade Docker client to match dockerd API requirements
-  # Install latest Docker CLI from official repository
-  echo "Upgrading Docker client to match dockerd API version..."
-  curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz | \
-    tar xz --strip-components=1 -C /usr/local/bin docker/docker
-  chmod +x /usr/local/bin/docker
 
   # Wait for Docker to be ready
   echo "Waiting for Docker daemon to be ready..."
