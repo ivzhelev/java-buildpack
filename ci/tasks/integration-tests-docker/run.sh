@@ -63,6 +63,10 @@ export LANG=en_US.UTF-8
 export LANGUAGE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
+# Set Docker API version to match daemon requirements (API 1.44+)
+# The Docker SDK v24 defaults to API 1.43, but can negotiate higher versions
+export DOCKER_API_VERSION=1.44
+
 # Initialize Ruby version manager (support both rbenv and mise)
 if command -v rbenv &> /dev/null; then
   eval "$(rbenv init -)"
