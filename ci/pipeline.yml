@@ -5,14 +5,7 @@ resources:
   icon: github
   source:
     uri: https://github.com/cloudfoundry/java-buildpack.git
-    branch: main
-
-- name: java-buildpack-system-test
-  type: git
-  icon: github
-  source:
-    uri: https://github.com/cloudfoundry/java-buildpack-system-test.git
-    branch: main
+    branch: ci-test
 
 - name: cf-deployment
   type: git
@@ -71,17 +64,33 @@ jobs:
   - put: buildpack-version
     params: {file: buildpack-version/version}
 
-- name: test-buildpack
+- name: integration-tests-docker
+  public: true
+  plan:
+  - get: java-buildpack
+    passed: [build-buildpack]
+    trigger: true
+  - task: build-buildpack-for-tests
+    file: java-buildpack/ci/tasks/build-buildpack/task.yml
+  - task: run-integration-tests-docker
+    file: java-buildpack/ci/tasks/integration-tests-docker/task.yml
+    privileged: true
+    params:
+      GITHUB_TOKEN: ((github_token))
+
+- name: integration-tests-cf
   public: true
   serial: true
   plan:
   - in_parallel:
     - get: java-buildpack
-      passed: [build-buildpack]
+      passed: [integration-tests-docker]
       trigger: true
-    - get: java-buildpack-system-test
     - get: cf-deployment
     - get: cf-deployment-concourse-tasks
+  
+  - task: build-buildpack-for-tests
+    file: java-buildpack/ci/tasks/build-buildpack/task.yml
   
   # Step 1: Create CF environment with BBL
   - task: bbl-up
@@ -97,32 +106,8 @@ jobs:
       BBL_LB_KEY: ((shared-cf-cert.private_key))
       LB_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
       BBL_STATE_DIR: .
-    input_mapping:
-      bbl-state: updated-bbl-state
-      bbl-config: bosh-bootloader/plan-patches/spot-gcp
   
-  - task: add-to-gcp-dns
-    file: runtime-ci/tasks/manage-gcp-dns/task.yml
-    image: cf-deployment-concourse-tasks
-    params:
-      BBL_STATE_DIR: bump-deployments/bbl-gcp-cf
-      GCP_DNS_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
-      GCP_DNS_ZONE_NAME: bootloader-ci
-      GCP_DNS_RECORD_SET_NAME: bump-deployments-cf.bbl.ci.cloudfoundry.org
-      ACTION: add
-    input_mapping:
-      bbl-state: updated-bbl-state
-    on_failure:
-      task: destroy-infrastructure
-      file: cf-deployment-concourse-tasks/bbl-destroy/task.yml
-      image: cf-deployment-concourse-tasks
-      input_mapping:
-        bbl-state: updated-bbl-state
-      params:
-        BBL_STATE_DIR: bump-deployments/bbl-gcp-cf
-        BBL_GCP_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
-  
-  # Step 3: Deploy Cloud Foundry
+  # Step 2: Deploy Cloud Foundry
   - task: bosh-deploy-cf
     file: cf-deployment-concourse-tasks/bosh-deploy/task.yml
     input_mapping:
@@ -134,23 +119,21 @@ jobs:
       updated-bbl-state: bbl-state
     params:
       SYSTEM_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
-      BBL_STATE_DIR: bbl-state
+      BBL_STATE_DIR: .
       OPS_FILES: |
         operations/use-compiled-releases.yml
         operations/experimental/fast-deploy-with-downtime-and-danger.yml
         operations/scale-to-one-az.yml
-        operations/experimental/use-spot-instances.yml
 
-  # Step 4: Run system tests
-  - task: run-system-tests
-    file: java-buildpack/ci/tasks/system-tests/task.yml
-    input_mapping:
-      built-buildpack: java-buildpack
+  # Step 3: Run Switchblade integration tests on CF
+  - task: run-integration-tests-cf
+    file: java-buildpack/ci/tasks/integration-tests-cf/task.yml
     params:
       SYSTEM_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
+      GITHUB_TOKEN: ((github_token))
     ensure:
       do:
-      # Step 5: Cleanup BOSH environment
+      # Step 4: Cleanup BOSH environment
       - task: bosh-cleanup
         file: cf-deployment-concourse-tasks/bosh-cleanup/task.yml
         input_mapping:
@@ -160,26 +143,13 @@ jobs:
         params:
           BBL_STATE_DIR: .
       
-      # Step 6: Remove DNS records
-      - task: remove-from-gcp-dns
-        file: runtime-ci/tasks/manage-gcp-dns/task.yml
-        image: cf-deployment-concourse-tasks
-        params:
-          BBL_STATE_DIR: bbl-state
-          GCP_DNS_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
-          GCP_DNS_ZONE_NAME: buildpacks-ci
-          GCP_DNS_RECORD_SET_NAME: java-buildpack-cf.bbl.ci.cloudfoundry.org
-          ACTION: remove
-        input_mapping:
-          bbl-state: updated-bbl-state
-      
-      # Step 7: Destroy infrastructure
+      # Step 5: Destroy infrastructure
       - task: bbl-destroy
         file: cf-deployment-concourse-tasks/bbl-destroy/task.yml
         input_mapping:
           bbl-state: bbl-state
         params:
-          BBL_STATE_DIR: bbl-state
+          BBL_STATE_DIR: .
           BBL_GCP_SERVICE_ACCOUNT_KEY: ((gcp_service_account_key))
 
 - name: ship-it
@@ -188,7 +158,7 @@ jobs:
   plan:
   - in_parallel:
     - get: java-buildpack
-      passed: [test-buildpack]
+      passed: [integration-tests-cf]
     - get: buildpack-version
   
   - task: create-release

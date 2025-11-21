@@ -1,0 +1,17 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: cfbuildpacks/ci
+
+inputs:
+- name: java-buildpack
+- name: built-buildpack
+
+params:
+  GITHUB_TOKEN:
+
+run:
+  path: java-buildpack/ci/tasks/integration-tests-docker/run.sh

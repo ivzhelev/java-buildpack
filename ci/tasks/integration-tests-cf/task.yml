@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: cfbuildpacks/ci
+
+inputs:
+- name: java-buildpack
+- name: built-buildpack
+- name: bbl-state
+
+params:
+  SYSTEM_DOMAIN:
+  GITHUB_TOKEN:
+
+run:
+  path: java-buildpack/ci/tasks/integration-tests-cf/run.sh
