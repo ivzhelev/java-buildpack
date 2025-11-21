@@ -39,7 +39,7 @@ resources:
   source:
     owner: cloudfoundry
     repository: java-buildpack
-    access_token: ((github_access_token))
+    access_token: ((buildpacks-github-token))
 
 jobs:
 - name: unit-tests
@@ -76,7 +76,7 @@ jobs:
     file: java-buildpack/ci/tasks/integration-tests-docker/task.yml
     privileged: true
     params:
-      GITHUB_TOKEN: ((github_token))
+      GITHUB_TOKEN: ((buildpacks-github-token))
 
 - name: integration-tests-cf
   public: true
@@ -130,7 +130,7 @@ jobs:
     file: java-buildpack/ci/tasks/integration-tests-cf/task.yml
     params:
       SYSTEM_DOMAIN: java-buildpack.buildpacks.ci.cloudfoundry.org
-      GITHUB_TOKEN: ((github_token))
+      GITHUB_TOKEN: ((buildpacks-github-token))
     ensure:
       do:
       # Step 4: Cleanup BOSH environment

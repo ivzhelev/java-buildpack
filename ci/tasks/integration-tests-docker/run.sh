@@ -10,7 +10,14 @@ export LANG=en_US.UTF-8
 export LANGUAGE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-eval "$(rbenv init -)"
+# Initialize Ruby version manager (support both rbenv and mise)
+if command -v rbenv &> /dev/null; then
+  eval "$(rbenv init -)"
+elif command -v mise &> /dev/null; then
+  eval "$(mise activate bash)"
+else
+  echo "Warning: Neither rbenv nor mise found, using system Ruby"
+fi
 
 cd java-buildpack
 
