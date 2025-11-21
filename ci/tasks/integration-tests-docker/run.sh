@@ -27,12 +27,16 @@ start_docker() {
     mount -o remount,rw /proc/sys
   fi
 
-  # Start dockerd in background with explicit API version compatibility
+  # Start dockerd in background
   dockerd --data-root /scratch/docker --mtu 1200 >/tmp/docker.log 2>&1 &
   echo $! > /tmp/docker.pid
   
-  # Set Docker client to use compatible API version
-  export DOCKER_API_VERSION=1.43
+  # Upgrade Docker client to match dockerd API requirements
+  # Install latest Docker CLI from official repository
+  echo "Upgrading Docker client to match dockerd API version..."
+  curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz | \
+    tar xz --strip-components=1 -C /usr/local/bin docker/docker
+  chmod +x /usr/local/bin/docker
 
   # Wait for Docker to be ready
   echo "Waiting for Docker daemon to be ready..."
