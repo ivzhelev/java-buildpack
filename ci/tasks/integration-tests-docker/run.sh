@@ -27,9 +27,12 @@ start_docker() {
     mount -o remount,rw /proc/sys
   fi
 
-  # Start dockerd in background
+  # Start dockerd in background with explicit API version compatibility
   dockerd --data-root /scratch/docker --mtu 1200 >/tmp/docker.log 2>&1 &
   echo $! > /tmp/docker.pid
+  
+  # Set Docker client to use compatible API version
+  export DOCKER_API_VERSION=1.43
 
   # Wait for Docker to be ready
   echo "Waiting for Docker daemon to be ready..."
