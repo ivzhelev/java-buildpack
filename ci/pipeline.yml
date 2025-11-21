@@ -50,28 +50,14 @@ jobs:
   - task: run-unit-tests
     file: java-buildpack/ci/tasks/unit-tests/task.yml
 
-- name: build-buildpack
-  public: true
-  plan:
-  - in_parallel:
-    - get: java-buildpack
-      passed: [unit-tests]
-      trigger: true
-    - get: buildpack-version
-      params: {bump: patch}
-  - task: build-online-buildpack
-    file: java-buildpack/ci/tasks/build-buildpack/task.yml
-  - put: buildpack-version
-    params: {file: buildpack-version/version}
-
 - name: integration-tests-docker
   public: true
   plan:
   - get: java-buildpack
-    passed: [build-buildpack]
+    passed: [unit-tests]
     trigger: true
   - task: build-buildpack-for-tests
-    file: java-buildpack/ci/tasks/build-buildpack/task.yml
+    file: java-buildpack/ci/tasks/build-buildpack-for-tests/task.yml
   - task: run-integration-tests-docker
     file: java-buildpack/ci/tasks/integration-tests-docker/task.yml
     privileged: true
@@ -90,7 +76,7 @@ jobs:
     - get: cf-deployment-concourse-tasks
   
   - task: build-buildpack-for-tests
-    file: java-buildpack/ci/tasks/build-buildpack/task.yml
+    file: java-buildpack/ci/tasks/build-buildpack-for-tests/task.yml
   
   # Step 1: Create CF environment with BBL
   - task: bbl-up
@@ -160,6 +146,7 @@ jobs:
     - get: java-buildpack
       passed: [integration-tests-cf]
     - get: buildpack-version
+      params: {bump: patch}
   
   - task: create-release
     file: java-buildpack/ci/tasks/create-release/task.yml
@@ -173,4 +160,4 @@ jobs:
       - release/java-buildpack-*.zip
   
   - put: buildpack-version
-    params: {bump: minor}
+    params: {file: buildpack-version/version}
