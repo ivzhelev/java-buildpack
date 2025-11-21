@@ -7,8 +7,8 @@ cd java-buildpack
 echo "Installing dependencies..."
 bundle install
 
-echo "Building online buildpack for testing..."
-OFFLINE=false bundle exec rake package
+echo "Building offline buildpack with cached dependencies for testing..."
+OFFLINE=true bundle exec rake package
 
 echo "Copying buildpack to output..."
 cp build/java-buildpack-*.zip ../built-buildpack/java-buildpack-dev.zip
