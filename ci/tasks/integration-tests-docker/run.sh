@@ -57,7 +57,8 @@ stop_docker() {
 start_docker
 trap stop_docker EXIT
 
-export BUILDPACK_FILE=$(pwd)/built-buildpack/java-buildpack-*.zip
+# Resolve wildcard to actual buildpack filename with absolute path
+export BUILDPACK_FILE=$(ls $(pwd)/built-buildpack/java-buildpack-*.zip | head -1)
 export GEM_HOME=$PWD/gems
 export LANG=en_US.UTF-8
 export LANGUAGE=en_US.UTF-8
