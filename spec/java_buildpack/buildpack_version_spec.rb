@@ -59,6 +59,8 @@ describe JavaBuildpack::BuildpackVersion do
 
     git_dir = Pathname.new('.git').expand_path
 
+    allow_any_instance_of(described_class).to receive(:git_dir?)
+      .and_return(true)
     allow_any_instance_of(described_class).to receive(:system)
       .with('which git > /dev/null')
       .and_return(true)
@@ -108,6 +110,8 @@ describe JavaBuildpack::BuildpackVersion do
      configuration: { 'version' => 'test-version' } do
 
     git_dir = Pathname.new('.git').expand_path
+    allow_any_instance_of(described_class).to receive(:git_dir?)
+      .and_return(true)
     allow_any_instance_of(described_class).to receive(:system)
       .with('which git > /dev/null')
       .and_return(true)
