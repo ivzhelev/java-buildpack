@@ -31,7 +31,7 @@ func NewOpenJDKJRE(ctx *Context) *OpenJDKJRE {
 
 // Name returns the name of this JRE provider
 func (o *OpenJDKJRE) Name() string {
-	return "Open Jdk JRE"
+	return "OpenJDK"
 }
 
 // Detect returns true if OpenJDK should be used
@@ -45,7 +45,7 @@ func (o *OpenJDKJRE) Detect() (bool, error) {
 
 // Supply installs the OpenJDK JRE and its components
 func (o *OpenJDKJRE) Supply() error {
-	o.ctx.Log.BeginStep("Installing Open Jdk JRE")
+	o.ctx.Log.BeginStep("Installing OpenJDK JRE")
 
 	// Determine version
 	dep, err := GetJREVersion(o.ctx, "openjdk")
@@ -101,13 +101,13 @@ func (o *OpenJDKJRE) Supply() error {
 		// Non-fatal - continue without memory calculator
 	}
 
-	o.ctx.Log.Info("Open Jdk JRE installation complete")
+	o.ctx.Log.Info("OpenJDK JRE installation complete")
 	return nil
 }
 
 // Finalize performs final JRE configuration
 func (o *OpenJDKJRE) Finalize() error {
-	o.ctx.Log.BeginStep("Finalizing Open Jdk JRE configuration")
+	o.ctx.Log.BeginStep("Finalizing OpenJDK JRE configuration")
 
 	// Find the actual JAVA_HOME (needed if finalize is called on a fresh instance)
 	if o.javaHome == "" {
@@ -150,7 +150,7 @@ func (o *OpenJDKJRE) Finalize() error {
 		// Non-fatal
 	}
 
-	o.ctx.Log.Info("Open Jdk JRE finalization complete")
+	o.ctx.Log.Info("OpenJDK JRE finalization complete")
 	return nil
 }
 
