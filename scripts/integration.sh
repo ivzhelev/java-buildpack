@@ -2,142 +2,146 @@
 
 set -euo pipefail
 
-# Script to run integration tests using Switchblade framework
-# Supports both Cloud Foundry and Docker platforms
+ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly ROOTDIR
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-SRC_DIR="${ROOT_DIR}/src/integration"
+function usage() {
+  cat <<-USAGE
+integration.sh --github-token <token> [OPTIONS]
 
-# Default configuration
-PLATFORM="${PLATFORM:-cf}"
-STACK="${STACK:-cflinuxfs4}"
-CACHED="${CACHED:-false}"
-GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+Runs the integration tests.
 
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+OPTIONS
+  --help                  -h  prints the command usage
+  --github-token <token>      GitHub token to use when making API requests
+  --platform <cf|docker>      Switchblade platform to execute the tests against (default: cf)
+  --cached <true|false>       Run cached/offline tests (default: false)
+  --parallel <true|false>     Run tests in parallel (default: false)
+  --stack <stack>             Stack to use for tests (default: cflinuxfs4)
 
-function print_usage() {
-    echo "Usage: $0 [OPTIONS]"
-    echo ""
-    echo "Run integration tests for the Java buildpack using Switchblade"
-    echo ""
-    echo "Options:"
-    echo "  -p, --platform PLATFORM   Platform to test against (cf or docker, default: cf)"
-    echo "  -s, --stack STACK         Stack to use (default: cflinuxfs4)"
-    echo "  -c, --cached              Run cached/offline tests"
-    echo "  -t, --github-token TOKEN  GitHub API token for rate limiting"
-    echo "  -h, --help                Show this help message"
-    echo ""
-    echo "Environment Variables:"
-    echo "  BUILDPACK_FILE            Path to buildpack zip file (required)"
-    echo "  PLATFORM                  Platform to test (cf or docker)"
-    echo "  STACK                     Stack to use for tests"
-    echo "  CACHED                    Run cached tests (true/false)"
-    echo "  GITHUB_TOKEN              GitHub API token"
-    echo ""
-    echo "Examples:"
-    echo "  # Test on Cloud Foundry with cflinuxfs4"
-    echo "  BUILDPACK_FILE=/tmp/buildpack.zip $0"
-    echo ""
-    echo "  # Test on Docker"
-    echo "  BUILDPACK_FILE=/tmp/buildpack.zip $0 --platform docker"
-    echo ""
-    echo "  # Run cached/offline tests"
-    echo "  BUILDPACK_FILE=/tmp/buildpack.zip $0 --cached"
+EXAMPLES
+  # Serial mode
+  ./scripts/integration.sh --platform docker
+
+  # Parallel mode (uses GOMAXPROCS=2)
+  ./scripts/integration.sh --platform docker --parallel true
+USAGE
 }
 
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -p|--platform)
-            PLATFORM="$2"
-            shift 2
-            ;;
-        -s|--stack)
-            STACK="$2"
-            shift 2
-            ;;
-        -c|--cached)
-            CACHED="true"
-            shift
-            ;;
-        -t|--github-token)
-            GITHUB_TOKEN="$2"
-            shift 2
-            ;;
-        -h|--help)
-            print_usage
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            print_usage
-            exit 1
-            ;;
+function main() {
+  local src stack platform token cached parallel
+  src="${ROOTDIR}/src/integration"
+  stack="${CF_STACK:-cflinuxfs4}"
+  platform="cf"
+  cached="false"
+  parallel="false"
+  token="${GITHUB_TOKEN:-}"
+
+  while [[ "${#}" != 0 ]]; do
+    case "${1}" in
+      --platform)
+        platform="${2}"
+        shift 2
+        ;;
+
+      --github-token)
+        token="${2}"
+        shift 2
+        ;;
+
+      --cached)
+        cached="${2}"
+        shift 2
+        ;;
+
+      --parallel)
+        parallel="${2}"
+        shift 2
+        ;;
+
+      --stack)
+        stack="${2}"
+        shift 2
+        ;;
+
+      --help|-h)
+        shift 1
+        usage
+        exit 0
+        ;;
+
+      "")
+        # skip if the argument is empty
+        shift 1
+        ;;
+
+      *)
+        echo "ERROR: unknown argument \"${1}\""
+        usage
+        exit 1
+        ;;
     esac
-done
+  done
 
-# Validate required environment variables
-if [[ -z "${BUILDPACK_FILE:-}" ]]; then
-    echo -e "${RED}ERROR: BUILDPACK_FILE environment variable is required${NC}"
-    echo ""
-    print_usage
+  if [[ -z "${BUILDPACK_FILE:-}" ]]; then
+    echo "ERROR: BUILDPACK_FILE environment variable is required"
     exit 1
-fi
+  fi
 
-if [[ ! -f "${BUILDPACK_FILE}" ]]; then
-    echo -e "${RED}ERROR: Buildpack file not found: ${BUILDPACK_FILE}${NC}"
+  if [[ ! -f "${BUILDPACK_FILE}" ]]; then
+    echo "ERROR: Buildpack file not found: ${BUILDPACK_FILE}"
     exit 1
-fi
+  fi
 
-# Print configuration
-echo -e "${GREEN}=== Java Buildpack Integration Tests ===${NC}"
-echo "Platform:      ${PLATFORM}"
-echo "Stack:         ${STACK}"
-echo "Cached Tests:  ${CACHED}"
-echo "Buildpack:     ${BUILDPACK_FILE}"
-echo ""
+  echo "=== Java Buildpack Integration Tests ==="
+  echo "Platform:      ${platform}"
+  echo "Stack:         ${stack}"
+  echo "Cached:        ${cached}"
+  echo "Parallel:      ${parallel}"
+  echo "Buildpack:     ${BUILDPACK_FILE}"
+  echo ""
 
-# Check dependencies
-if ! command -v go &> /dev/null; then
-    echo -e "${RED}ERROR: Go is not installed${NC}"
-    exit 1
-fi
+  specs::run "${cached}" "${parallel}" "${stack}" "${platform}" "${token}"
+}
 
-echo -e "${YELLOW}Installing Go dependencies...${NC}"
-cd "${ROOT_DIR}"
-go mod download
+function specs::run() {
+  local cached parallel stack platform token
+  cached="${1}"
+  parallel="${2}"
+  stack="${3}"
+  platform="${4}"
+  token="${5}"
 
-# Build test flags
-TEST_FLAGS="-v"
-TEST_FLAGS="${TEST_FLAGS} -platform=${PLATFORM}"
-TEST_FLAGS="${TEST_FLAGS} -stack=${STACK}"
+  local nodes cached_flag serial_flag platform_flag stack_flag token_flag
+  cached_flag="--cached=${cached}"
+  serial_flag="--serial=true"
+  platform_flag="--platform=${platform}"
+  stack_flag="--stack=${stack}"
+  token_flag="--github-token=${token}"
+  nodes=1
 
-if [[ "${CACHED}" == "true" ]]; then
-    TEST_FLAGS="${TEST_FLAGS} -cached"
-fi
+  if [[ "${parallel}" == "true" ]]; then
+    nodes=2
+    serial_flag=""
+  fi
 
-if [[ -n "${GITHUB_TOKEN}" ]]; then
-    TEST_FLAGS="${TEST_FLAGS} -github-token=${GITHUB_TOKEN}"
-fi
+  cd "${ROOTDIR}"
+  go mod download
 
-# Run tests
-echo -e "${YELLOW}Running integration tests...${NC}"
-echo ""
+  CF_STACK="${stack}" \
+  BUILDPACK_FILE="${BUILDPACK_FILE}" \
+  GOMAXPROCS="${GOMAXPROCS:-"${nodes}"}" \
+    go test \
+      -count=1 \
+      -timeout=0 \
+      -mod vendor \
+      -v \
+        "${ROOTDIR}/src/integration" \
+         ${cached_flag} \
+         ${platform_flag} \
+         ${token_flag} \
+         ${stack_flag} \
+         ${serial_flag}
+}
 
-cd "${SRC_DIR}"
-
-if go test ${TEST_FLAGS} -timeout 30m -p 4 ./...; then
-    echo ""
-    echo -e "${GREEN}✓ All integration tests passed!${NC}"
-    exit 0
-else
-    echo ""
-    echo -e "${RED}✗ Integration tests failed${NC}"
-    exit 1
-fi
+main "${@:-}"
