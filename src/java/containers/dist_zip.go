@@ -25,7 +25,7 @@ func NewDistZipContainer(ctx *Context) *DistZipContainer {
 func (d *DistZipContainer) Detect() (string, error) {
 	buildDir := d.context.Stager.BuildDir()
 
-	// Check for bin/ and lib/ directories (typical distZip structure)
+	// Check for bin/ and lib/ directories at root (typical distZip structure)
 	binDir := filepath.Join(buildDir, "bin")
 	libDir := filepath.Join(buildDir, "lib")
 
@@ -41,6 +41,28 @@ func (d *DistZipContainer) Detect() (string, error) {
 				if !entry.IsDir() && filepath.Ext(entry.Name()) != ".bat" {
 					d.startScript = entry.Name()
 					d.context.Log.Debug("Detected Dist ZIP application with start script: %s", d.startScript)
+					return "Dist ZIP", nil
+				}
+			}
+		}
+	}
+
+	// Check for bin/ and lib/ directories in application-root (alternative structure)
+	binDirApp := filepath.Join(buildDir, "application-root", "bin")
+	libDirApp := filepath.Join(buildDir, "application-root", "lib")
+
+	binStatApp, binErrApp := os.Stat(binDirApp)
+	libStatApp, libErrApp := os.Stat(libDirApp)
+
+	if binErrApp == nil && libErrApp == nil && binStatApp.IsDir() && libStatApp.IsDir() {
+		// Check for startup scripts in bin/
+		entriesApp, errApp := os.ReadDir(binDirApp)
+		if errApp == nil && len(entriesApp) > 0 {
+			// Find a non-.bat script (Unix startup script)
+			for _, entry := range entriesApp {
+				if !entry.IsDir() && filepath.Ext(entry.Name()) != ".bat" {
+					d.startScript = filepath.Join("application-root", "bin", entry.Name())
+					d.context.Log.Debug("Detected Dist ZIP application (application-root) with start script: %s", d.startScript)
 					return "Dist ZIP", nil
 				}
 			}
@@ -74,18 +96,32 @@ func (d *DistZipContainer) Supply() error {
 
 // makeScriptsExecutable ensures all scripts in bin/ are executable
 func (d *DistZipContainer) makeScriptsExecutable() error {
-	binDir := filepath.Join(d.context.Stager.BuildDir(), "bin")
+	buildDir := d.context.Stager.BuildDir()
 
+	// Try root bin/ directory
+	binDir := filepath.Join(buildDir, "bin")
 	entries, err := os.ReadDir(binDir)
-	if err != nil {
-		return err
+	if err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) != ".bat" {
+				scriptPath := filepath.Join(binDir, entry.Name())
+				if err := os.Chmod(scriptPath, 0755); err != nil {
+					d.context.Log.Warning("Could not make %s executable: %s", entry.Name(), err.Error())
+				}
+			}
+		}
 	}
 
-	for _, entry := range entries {
-		if !entry.IsDir() && filepath.Ext(entry.Name()) != ".bat" {
-			scriptPath := filepath.Join(binDir, entry.Name())
-			if err := os.Chmod(scriptPath, 0755); err != nil {
-				d.context.Log.Warning("Could not make %s executable: %s", entry.Name(), err.Error())
+	// Try application-root/bin/ directory
+	binDirApp := filepath.Join(buildDir, "application-root", "bin")
+	entriesApp, errApp := os.ReadDir(binDirApp)
+	if errApp == nil {
+		for _, entry := range entriesApp {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) != ".bat" {
+				scriptPath := filepath.Join(binDirApp, entry.Name())
+				if err := os.Chmod(scriptPath, 0755); err != nil {
+					d.context.Log.Warning("Could not make %s executable: %s", entry.Name(), err.Error())
+				}
 			}
 		}
 	}
@@ -145,6 +181,12 @@ func (d *DistZipContainer) Release() (string, error) {
 		}
 	}
 
+	// If the start script already contains a path (application-root case), use it as-is
+	if strings.Contains(d.startScript, "/") {
+		return d.startScript, nil
+	}
+
+	// Otherwise, prepend bin/ (root structure case)
 	cmd := filepath.Join("bin", d.startScript)
 	return cmd, nil
 }
