@@ -8,3 +8,6 @@ build/
 doc
 .envrc
 AGENTS.md
+*.zip
+integration-test.log
+tmp/
