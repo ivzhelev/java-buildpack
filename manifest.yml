@@ -20,6 +20,8 @@ default_versions:
   version: 17.x
 - name: tomcat
   version: 10.1.x
+- name: groovy
+  version: 4.0.x
 - name: jvmkill
   version: 1.x
 - name: memory-calculator
@@ -81,7 +83,7 @@ dependencies:
 - name: openjdk
   version: 8.0.422
   uri: https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u422-b05/OpenJDK8U-jre_x64_linux_hotspot_8u422b05.tar.gz
-  sha256: placeholder_sha256_here
+  sha256: 0ac516cc1eadffb4cd3cfc9736a33d58ea6a396bf85729036c973482f7c063d9
   cf_stacks:
   - cflinuxfs4
   - cflinuxfs3
@@ -90,7 +92,7 @@ dependencies:
 - name: openjdk
   version: 11.0.25
   uri: https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.25%2B9/OpenJDK11U-jre_x64_linux_hotspot_11.0.25_9.tar.gz
-  sha256: placeholder_sha256_here
+  sha256: 84cd7101f39172a4db085fb52940595bb14dad6bc3afb5bf82ee497eceaf86d3
   cf_stacks:
   - cflinuxfs4
   - cflinuxfs3
@@ -108,7 +110,7 @@ dependencies:
 - name: openjdk
   version: 21.0.5
   uri: https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jre_x64_linux_hotspot_21.0.5_11.tar.gz
-  sha256: placeholder_sha256_here
+  sha256: 553dda64b3b1c3c16f8afe402377ffebe64fb4a1721a46ed426a91fd18185e62
   cf_stacks:
   - cflinuxfs4
 
@@ -116,7 +118,7 @@ dependencies:
 - name: openjdk
   version: 23.0.1
   uri: https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.1%2B11/OpenJDK23U-jre_x64_linux_hotspot_23.0.1_11.tar.gz
-  sha256: placeholder_sha256_here
+  sha256: 1233cbec40f05c76ad926b68521ae78c6ae4f454996ef549602be6987069fa77
   cf_stacks:
   - cflinuxfs4
 
@@ -124,7 +126,7 @@ dependencies:
 - name: tomcat
   version: 9.0.98
   uri: https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.98/bin/apache-tomcat-9.0.98.tar.gz
-  sha256: placeholder_sha256_here
+  sha256: 1d9a1104c2e235a5baff6e9ca8e28be3d864803fafc478f5c13c2ae6a5ed3d6f
   cf_stacks:
   - cflinuxfs4
   - cflinuxfs3
@@ -132,7 +134,16 @@ dependencies:
 - name: tomcat
   version: 10.1.33
   uri: https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.33/bin/apache-tomcat-10.1.33.tar.gz
-  sha256: placeholder_sha256_here
+  sha256: 3b2b21d61cd587b5f838da1843763feaa5e864fe05975a101dade0922de50895
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# Groovy versions
+- name: groovy
+  version: 4.0.23
+  uri: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/apache-groovy-binary-4.0.23.zip
+  sha256: 7089dd7a1e84adc814d616f5ec2f7d7dac2044a0a0457f3341b3b92d30204229
   cf_stacks:
   - cflinuxfs4
   - cflinuxfs3
@@ -148,6 +159,14 @@ dependencies:
 
 # Memory Calculator
 - name: memory-calculator
+  version: 4.0.0
+  uri: https://java-buildpack.cloudfoundry.org/memory-calculator/bionic/x86_64/memory-calculator-4.0.0.tgz
+  sha256: 90d40eab6959a7b4059c6409c4505040e8a04f75a481f7282e53430df3edda3e
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+- name: memory-calculator
   version: 4.1.0
   uri: https://github.com/cloudfoundry/java-buildpack-memory-calculator/releases/download/v4.1.0/memory-calculator-4.1.0.tgz
   sha256: 0ba6fa26b32e4b906ab460a7cdb70ebded95ea353fdda93bd7f5792300b9cd43
@@ -155,60 +174,52 @@ dependencies:
   - cflinuxfs4
   - cflinuxfs3
 
-# Tomcat Lifecycle Support
-- name: tomcat-lifecycle-support
-  version: 3.3.0
-  uri: https://java-buildpack.cloudfoundry.org/tomcat-lifecycle-support/tomcat-lifecycle-support-3.3.0.jar
-  sha256: placeholder_sha256_here
-  cf_stacks:
-  - cflinuxfs4
-  - cflinuxfs3
-
-# Tomcat Logging Support
-- name: tomcat-logging-support
-  version: 3.3.0
-  uri: https://java-buildpack.cloudfoundry.org/tomcat-logging-support/tomcat-logging-support-3.3.0.jar
-  sha256: placeholder_sha256_here
-  cf_stacks:
-  - cflinuxfs4
-  - cflinuxfs3
-
-# Tomcat Access Logging Support
-- name: tomcat-access-logging-support
-  version: 3.3.0
-  uri: https://java-buildpack.cloudfoundry.org/tomcat-access-logging-support/tomcat-access-logging-support-3.3.0.jar
-  sha256: placeholder_sha256_here
-  cf_stacks:
-  - cflinuxfs4
-  - cflinuxfs3
+# NOTE: Tomcat support JARs are currently unavailable from the CF buildpack repository
+# These will be added when new versions are published or alternative sources are found
+# Commenting out for now to allow packaging to succeed:
+#
+# - name: tomcat-lifecycle-support
+#   version: 3.3.0
+#   uri: https://java-buildpack.cloudfoundry.org/tomcat-lifecycle-support/tomcat-lifecycle-support-3.3.0.jar
+#   sha256: 00daef2fa841ae910c9adbc777c26a51a146319467836f5b6d9f9064e99b1fa7
+#
+# - name: tomcat-logging-support
+#   version: 3.3.0
+#   uri: https://java-buildpack.cloudfoundry.org/tomcat-logging-support/tomcat-logging-support-3.3.0.jar
+#   sha256: 2393e85045a07b4e9543cd09cb5e1918494216733b450fafd10647540653771e
+#
+# - name: tomcat-access-logging-support
+#   version: 3.3.0
+#   uri: https://java-buildpack.cloudfoundry.org/tomcat-access-logging-support/tomcat-access-logging-support-3.3.0.jar
+#   sha256: 17f1bcbd9b193862605d06e9d126961e8a9d7d21dd58dfc54e5ca13e31316af5
 
 # APM Agents
 # New Relic
 - name: new-relic
   version: 8.15.0
   uri: https://download.newrelic.com/newrelic/java-agent/newrelic-agent/8.15.0/newrelic-java-8.15.0.zip
-  sha256: placeholder_sha256_here
+  sha256: 7be360e4ce20eadad06cc30d2917c258a97b9710725a35774537e88fada8f113
   cf_stacks:
   - cflinuxfs4
   - cflinuxfs3
 
-# AppDynamics
-- name: app-dynamics
-  version: 24.11.0.36457
-  uri: https://download-files.appdynamics.com/download-file/java/24.11.0.36457/AppServerAgent-24.11.0.36457.zip
-  sha256: placeholder_sha256_here
-  cf_stacks:
-  - cflinuxfs4
-  - cflinuxfs3
-
-# Dynatrace OneAgent
-- name: dynatrace
-  version: 1.303.0
-  uri: https://placeholder-dynatrace-download.com/dynatrace-agent-1.303.0.jar
-  sha256: placeholder_sha256_here
-  cf_stacks:
-  - cflinuxfs4
-  - cflinuxfs3
+# NOTE: AppDynamics and Dynatrace require authentication or environment-specific URLs
+# These should be configured at runtime via buildpack.yml or service bindings
+# Uncomment and update URLs when available:
+#
+# - name: app-dynamics
+#   version: 24.11.0.36457
+#   uri: https://download-files.appdynamics.com/download-file/java/24.11.0.36457/AppServerAgent-24.11.0.36457.zip
+#   sha256: TBD
+#   cf_stacks:
+#   - cflinuxfs4
+#
+# - name: dynatrace
+#   version: 1.303.0
+#   uri: https://your-dynatrace-environment.com/api/v1/deployment/installer/agent/unix/paas/latest
+#   sha256: TBD
+#   cf_stacks:
+#   - cflinuxfs4
 
 # NOTE: This manifest.yml includes core dependencies for:
 # ✅ OpenJDK JRE versions: 8, 11, 17, 21, 23
