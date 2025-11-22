@@ -132,7 +132,7 @@ echo ""
 
 cd "${SRC_DIR}"
 
-if go test ${TEST_FLAGS} -timeout 30m ./...; then
+if go test ${TEST_FLAGS} -timeout 30m -p 4 ./...; then
     echo ""
     echo -e "${GREEN}✓ All integration tests passed!${NC}"
     exit 0
