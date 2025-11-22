@@ -80,8 +80,21 @@ func (j *JavaMainContainer) findMainClass(buildDir string) (string, string) {
 
 // readMainClassFromManifest reads the Main-Class from a manifest file
 func (j *JavaMainContainer) readMainClassFromManifest(manifestPath string) string {
-	// TODO: In full implementation, parse MANIFEST.MF properly
-	// For now, return empty to trigger alternative detection
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return ""
+	}
+
+	// Parse MANIFEST.MF file (simple line-by-line parsing)
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Main-Class:") {
+			mainClass := strings.TrimSpace(strings.TrimPrefix(line, "Main-Class:"))
+			return mainClass
+		}
+	}
+
 	return ""
 }
 

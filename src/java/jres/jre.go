@@ -111,22 +111,61 @@ func DetectJREByEnv(jreName string) bool {
 }
 
 // GetJREVersion gets the desired JRE version from environment or uses default
+// Supports BP_JAVA_VERSION (simple version) and JBP_CONFIG_<JRE_NAME> (complex config)
 func GetJREVersion(ctx *Context, jreName string) (libbuildpack.Dependency, error) {
-	// Check for version override in environment
+	// Check for simple BP_JAVA_VERSION environment variable first
+	// Format: "8", "11", "17", "21", etc. or version patterns like "11.+", "17.*"
+	if bpVersion := os.Getenv("BP_JAVA_VERSION"); bpVersion != "" {
+		ctx.Log.Debug("Using Java version from BP_JAVA_VERSION: %s", bpVersion)
+
+		// Normalize version to a pattern that FindMatchingVersion understands
+		versionPattern := normalizeVersionPattern(bpVersion)
+
+		// Get all available versions for this JRE
+		availableVersions := ctx.Manifest.AllDependencyVersions(jreName)
+		if len(availableVersions) == 0 {
+			return libbuildpack.Dependency{}, fmt.Errorf("no versions found for %s", jreName)
+		}
+
+		// Find the highest matching version
+		matchedVersion, err := libbuildpack.FindMatchingVersion(versionPattern, availableVersions)
+		if err != nil {
+			ctx.Log.Warning("Could not find %s matching version %s: %s", jreName, versionPattern, err.Error())
+			return libbuildpack.Dependency{}, fmt.Errorf("no version of %s matching %s found", jreName, versionPattern)
+		}
+
+		ctx.Log.Debug("Resolved %s version %s from pattern %s", jreName, matchedVersion, versionPattern)
+		return libbuildpack.Dependency{Name: jreName, Version: matchedVersion}, nil
+	}
+
+	// Check for legacy JBP_CONFIG_<JRE_NAME> environment variable
 	envKey := fmt.Sprintf("JBP_CONFIG_%s", strings.ToUpper(strings.ReplaceAll(jreName, "-", "_")))
 	if envVal := os.Getenv(envKey); envVal != "" {
 		// Parse version from env (e.g., '{jre: {version: 11.+}}')
-		// For now, simplified
-		ctx.Log.Debug("JRE version override from environment: %s", envVal)
+		// For now, simplified - just log it
+		ctx.Log.Debug("JRE version override from %s: %s", envKey, envVal)
+		// TODO: Parse YAML-like config from envVal
 	}
 
-	// Get default version from manifest
+	// Get default version from manifest (no version constraint)
 	dep, err := ctx.Manifest.DefaultVersion(jreName)
 	if err != nil {
 		return libbuildpack.Dependency{}, err
 	}
 
 	return dep, nil
+}
+
+// normalizeVersionPattern converts user-friendly version strings to manifest patterns
+// Examples: "8" -> "8.*", "11" -> "11.*", "17.0" -> "17.0.*", "11.+" -> "11.+"
+func normalizeVersionPattern(version string) string {
+	// If already has wildcard, return as-is
+	if strings.Contains(version, "*") || strings.Contains(version, "+") {
+		return version
+	}
+
+	// Otherwise append ".*" to match any patch version
+	return version + ".*"
 }
 
 // SetupJavaHome sets JAVA_HOME and related environment variables
