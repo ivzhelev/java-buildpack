@@ -1,0 +1,260 @@
+// Cloud Foundry Java Buildpack
+// Copyright 2013-2021 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package frameworks
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// RiverbedAppInternalsAgentFramework represents the Riverbed AppInternals agent framework
+type RiverbedAppInternalsAgentFramework struct {
+	context   *Context
+	agentPath string
+}
+
+// NewRiverbedAppInternalsAgentFramework creates a new Riverbed AppInternals agent framework instance
+func NewRiverbedAppInternalsAgentFramework(ctx *Context) *RiverbedAppInternalsAgentFramework {
+	return &RiverbedAppInternalsAgentFramework{context: ctx}
+}
+
+// Detect checks if Riverbed AppInternals agent should be enabled
+func (r *RiverbedAppInternalsAgentFramework) Detect() (string, error) {
+	// Check for riverbed-appinternals service binding
+	if r.hasServiceBinding() {
+		r.context.Log.Debug("Riverbed AppInternals agent framework detected via service binding")
+		return "riverbed-appinternals-agent", nil
+	}
+
+	r.context.Log.Debug("Riverbed AppInternals agent: no service binding found")
+	return "", nil
+}
+
+// Supply downloads and installs the Riverbed AppInternals agent
+func (r *RiverbedAppInternalsAgentFramework) Supply() error {
+	r.context.Log.BeginStep("Installing Riverbed AppInternals agent")
+
+	// Get dependency from manifest
+	dep, err := r.context.Manifest.DefaultVersion("riverbed-appinternals-agent")
+	if err != nil {
+		r.context.Log.Warning("Unable to find Riverbed AppInternals agent in manifest: %s", err)
+		return nil // Non-blocking
+	}
+
+	// Install the agent
+	agentDir := filepath.Join(r.context.Stager.DepDir(), "riverbed_appinternals_agent")
+	if err := r.context.Installer.InstallDependency(dep, agentDir); err != nil {
+		r.context.Log.Warning("Failed to install Riverbed AppInternals agent: %s", err)
+		return nil // Non-blocking
+	}
+
+	// Find the installed agent directory (contains lib/rvbd-agent.jar)
+	agentJarPath := filepath.Join(agentDir, "lib", "rvbd-agent.jar")
+	if _, err := os.Stat(agentJarPath); err != nil {
+		r.context.Log.Warning("Riverbed AppInternals agent JAR not found after installation")
+		return nil
+	}
+	r.agentPath = agentJarPath
+
+	r.context.Log.Info("Riverbed AppInternals agent %s installed", dep.Version)
+	return nil
+}
+
+// Finalize configures the Riverbed AppInternals agent
+func (r *RiverbedAppInternalsAgentFramework) Finalize() error {
+	if r.agentPath == "" {
+		return nil
+	}
+
+	r.context.Log.BeginStep("Configuring Riverbed AppInternals agent")
+
+	// Get credentials from service binding
+	credentials := r.getCredentials()
+
+	// Add javaagent to JAVA_OPTS
+	javaagentOpt := fmt.Sprintf("-javaagent:%s", r.agentPath)
+	if err := r.appendToJavaOpts(javaagentOpt); err != nil {
+		r.context.Log.Warning("Failed to add Riverbed AppInternals agent to JAVA_OPTS: %s", err)
+		return nil
+	}
+
+	// Configure moniker (application name)
+	moniker := credentials.Moniker
+	if moniker == "" {
+		moniker = r.getApplicationName()
+	}
+	if moniker != "" {
+		monikerOpt := fmt.Sprintf("-Drvbd.moniker=%s", moniker)
+		if err := r.appendToJavaOpts(monikerOpt); err != nil {
+			r.context.Log.Warning("Failed to set moniker: %s", err)
+		}
+	}
+
+	// Configure analysis server
+	if credentials.AnalysisServer != "" {
+		serverOpt := fmt.Sprintf("-Drvbd.analysis.server=%s", credentials.AnalysisServer)
+		if err := r.appendToJavaOpts(serverOpt); err != nil {
+			r.context.Log.Warning("Failed to set analysis server: %s", err)
+		}
+	}
+
+	r.context.Log.Info("Riverbed AppInternals agent configured")
+	return nil
+}
+
+// hasServiceBinding checks if there's a riverbed-appinternals service binding
+func (r *RiverbedAppInternalsAgentFramework) hasServiceBinding() bool {
+	vcapServices := os.Getenv("VCAP_SERVICES")
+	if vcapServices == "" {
+		return false
+	}
+
+	var services map[string][]map[string]interface{}
+	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
+		return false
+	}
+
+	// Check for riverbed service
+	serviceNames := []string{
+		"riverbed-appinternals",
+		"appinternals",
+	}
+
+	for _, serviceName := range serviceNames {
+		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
+			return true
+		}
+	}
+
+	// Check user-provided services
+	if userProvided, ok := services["user-provided"]; ok {
+		for _, service := range userProvided {
+			if tags, ok := service["tags"].([]interface{}); ok {
+				for _, tag := range tags {
+					if tagStr, ok := tag.(string); ok {
+						tagLower := strings.ToLower(tagStr)
+						if strings.Contains(tagLower, "riverbed") ||
+							strings.Contains(tagLower, "appinternals") {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// RiverbedCredentials holds Riverbed AppInternals credentials
+type RiverbedCredentials struct {
+	Moniker        string
+	AnalysisServer string
+}
+
+// getCredentials retrieves Riverbed credentials from service binding
+func (r *RiverbedAppInternalsAgentFramework) getCredentials() RiverbedCredentials {
+	creds := RiverbedCredentials{}
+
+	vcapServices := os.Getenv("VCAP_SERVICES")
+	if vcapServices == "" {
+		return creds
+	}
+
+	var services map[string][]map[string]interface{}
+	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
+		return creds
+	}
+
+	// Look for riverbed service
+	serviceNames := []string{
+		"riverbed-appinternals",
+		"appinternals",
+		"user-provided",
+	}
+
+	for _, serviceName := range serviceNames {
+		if serviceList, ok := services[serviceName]; ok {
+			for _, service := range serviceList {
+				if credentials, ok := service["credentials"].(map[string]interface{}); ok {
+					// Get moniker
+					if moniker, ok := credentials["moniker"].(string); ok {
+						creds.Moniker = moniker
+					} else if moniker, ok := credentials["rvbd_moniker"].(string); ok {
+						creds.Moniker = moniker
+					}
+
+					// Get analysis server
+					if server, ok := credentials["analysis_server"].(string); ok {
+						creds.AnalysisServer = server
+					} else if server, ok := credentials["analysisServer"].(string); ok {
+						creds.AnalysisServer = server
+					} else if server, ok := credentials["rvbd_analysis_server"].(string); ok {
+						creds.AnalysisServer = server
+					}
+
+					if creds.AnalysisServer != "" {
+						return creds
+					}
+				}
+			}
+		}
+	}
+
+	return creds
+}
+
+// getApplicationName returns the application name from VCAP_APPLICATION
+func (r *RiverbedAppInternalsAgentFramework) getApplicationName() string {
+	vcapApp := os.Getenv("VCAP_APPLICATION")
+	if vcapApp == "" {
+		return ""
+	}
+
+	var appData map[string]interface{}
+	if err := json.Unmarshal([]byte(vcapApp), &appData); err != nil {
+		return ""
+	}
+
+	if name, ok := appData["application_name"].(string); ok {
+		return name
+	}
+
+	return ""
+}
+
+// appendToJavaOpts appends a value to JAVA_OPTS
+func (r *RiverbedAppInternalsAgentFramework) appendToJavaOpts(value string) error {
+	javaOptsFile := filepath.Join(r.context.Stager.DepDir(), "env", "JAVA_OPTS")
+
+	// Read existing JAVA_OPTS
+	var existingOpts string
+	if data, err := os.ReadFile(javaOptsFile); err == nil {
+		existingOpts = string(data)
+	}
+
+	// Append new value
+	if existingOpts != "" {
+		existingOpts += " "
+	}
+	existingOpts += value
+
+	// Write back
+	return r.context.Stager.WriteEnvFile(javaOptsFile, existingOpts)
+}
