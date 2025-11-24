@@ -151,10 +151,27 @@ func (s *Supplier) installFrameworks() error {
 
 	// Create and populate framework registry
 	registry := frameworks.NewRegistry(ctx)
+
+	// APM Agents (Priority 1)
 	registry.Register(frameworks.NewNewRelicFramework(ctx))
 	registry.Register(frameworks.NewAppDynamicsFramework(ctx))
 	registry.Register(frameworks.NewDynatraceFramework(ctx))
-	// Add more frameworks here as needed:
+	registry.Register(frameworks.NewDatadogJavaagentFramework(ctx))
+	registry.Register(frameworks.NewElasticApmAgentFramework(ctx))
+
+	// Spring Service Bindings (Priority 1)
+	registry.Register(frameworks.NewSpringAutoReconfigurationFramework(ctx))
+	registry.Register(frameworks.NewJavaCfEnvFramework(ctx))
+
+	// JDBC Drivers (Priority 1)
+	registry.Register(frameworks.NewPostgresqlJdbcFramework(ctx))
+	registry.Register(frameworks.NewMariaDBJDBCFramework(ctx))
+
+	// Development Tools (Priority 1)
+	registry.Register(frameworks.NewDebugFramework(ctx))
+	registry.Register(frameworks.NewJmxFramework(ctx))
+
+	// Additional frameworks (Priority 2+) to be added:
 	// registry.Register(frameworks.NewJaCoCoFramework(ctx))
 	// registry.Register(frameworks.NewJRebelFramework(ctx))
 	// etc.

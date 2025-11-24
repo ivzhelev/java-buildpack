@@ -26,6 +26,18 @@ default_versions:
   version: 1.x
 - name: memory-calculator
   version: 4.x
+- name: auto-reconfiguration
+  version: 2.x
+- name: java-cfenv
+  version: 3.x
+- name: postgresql-jdbc
+  version: 42.x
+- name: mariadb-jdbc
+  version: 3.x
+- name: datadog-javaagent
+  version: 1.x
+- name: elastic-apm-agent
+  version: 1.x
 
 url_to_dependency_map:
 - match: openjdk-jre-(\d+\.\d+\.\d+)
@@ -48,6 +60,24 @@ url_to_dependency_map:
   version: $1
 - match: dynatrace-(\d+\.\d+\.\d+)
   name: dynatrace
+  version: $1
+- match: auto-reconfiguration-(\d+\.\d+\.\d+)
+  name: auto-reconfiguration
+  version: $1
+- match: java-cfenv-(\d+\.\d+\.\d+)
+  name: java-cfenv
+  version: $1
+- match: postgresql-(\d+\.\d+\.\d+)
+  name: postgresql-jdbc
+  version: $1
+- match: mariadb-java-client-(\d+\.\d+\.\d+)
+  name: mariadb-jdbc
+  version: $1
+- match: dd-java-agent-(\d+\.\d+\.\d+)
+  name: datadog-javaagent
+  version: $1
+- match: elastic-apm-agent-(\d+\.\d+\.\d+)
+  name: elastic-apm-agent
   version: $1
 
 dependency_deprecation_dates:
@@ -221,19 +251,76 @@ dependencies:
 #   cf_stacks:
 #   - cflinuxfs4
 
+# Datadog Javaagent
+- name: datadog-javaagent
+  version: 1.42.1
+  uri: https://repo1.maven.org/maven2/com/datadoghq/dd-java-agent/1.42.1/dd-java-agent-1.42.1.jar
+  sha256: e703547f69695d2b3dbfcfa7e920bfa6e86decebe015e7047c313736d2268928
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# Elastic APM Agent
+- name: elastic-apm-agent
+  version: 1.52.0
+  uri: https://repo1.maven.org/maven2/co/elastic/apm/elastic-apm-agent/1.52.0/elastic-apm-agent-1.52.0.jar
+  sha256: ef6c8f75bd6181e717cdd172864441580708c7ee8543175621a3f404f4ba6429
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# Spring Auto-reconfiguration
+- name: auto-reconfiguration
+  version: 2.12.0
+  uri: https://java-buildpack.cloudfoundry.org/auto-reconfiguration/auto-reconfiguration-2.12.0-RELEASE.jar
+  sha256: 78dc1c2b3d3b6fb4ab94f38004ad1fbeb81992d942bd564127ca5d3da3cd2010
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# Java CF Env
+- name: java-cfenv
+  version: 3.5.0
+  uri: https://java-buildpack.cloudfoundry.org/java-cfenv/java-cfenv-3.5.0.jar
+  sha256: 6a761fe530783c0ec9e6d1713ef54f6504803bf1ad02856d3ee7b46211f905c5
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# PostgreSQL JDBC Driver
+- name: postgresql-jdbc
+  version: 42.7.4
+  uri: https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar
+  sha256: 188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# MariaDB JDBC Driver
+- name: mariadb-jdbc
+  version: 3.5.1
+  uri: https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.5.1/mariadb-java-client-3.5.1.jar
+  sha256: 50a50c4a3c13c30dfbd40587f7ad9a496197d285ede0948641d9eee68fdf2106
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
 # NOTE: This manifest.yml includes core dependencies for:
 # ✅ OpenJDK JRE versions: 8, 11, 17, 21, 23
 # ✅ Tomcat versions: 9.x, 10.x
+# ✅ Groovy 4.x
 # ✅ JVMKill agent and Memory Calculator
-# ✅ Tomcat support libraries
-# ✅ APM agents: New Relic, AppDynamics, Dynatrace
+# ✅ Tomcat support libraries (commented out - unavailable)
+# ✅ APM agents: New Relic, Datadog, Elastic APM (AppDynamics, Dynatrace require auth)
+# ✅ Spring service bindings: Auto-reconfiguration, Java CF Env
+# ✅ JDBC drivers: PostgreSQL, MariaDB
+# ⚠️  Debug and JMX frameworks (no external dependencies - use app-provided tools)
 #
 # Additional dependencies still need to be added for:
 # - Other JRE vendors (Zulu, GraalVM, SAP Machine, IBM JRE, Oracle JRE, Zing)
-# - Other APM/monitoring agents (Elastic APM, SkyWalking, Sealights, etc.)
+# - Other APM/monitoring agents (Azure App Insights, SkyWalking, Sealights, Introscope, etc.)
 # - Security providers (Luna, ProtectApp, etc.)
 # - Debug frameworks (JRebel, JProfiler, YourKit)
-# - JDBC drivers (PostgreSQL, MariaDB)
 # - Spring Boot CLI, Play Framework, Ratpack support libraries
 # 
 # TODO: Calculate SHA256 checksums for all placeholder dependencies.

@@ -9,6 +9,7 @@ doc
 .envrc
 AGENTS.md
 SESSION_*.md
+MIGRATION_STATUS.md
 *.zip
 integration-test.log
 integration-test-*.log
