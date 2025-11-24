@@ -101,7 +101,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(logs.String()).To(ContainSubstring("Open Jdk JRE"))
+				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
 				Expect(deployment.ExternalURL).NotTo(BeEmpty())
 			})
 		})
