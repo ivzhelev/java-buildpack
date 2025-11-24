@@ -80,7 +80,16 @@ func (d *DebugFramework) Finalize() error {
 
 // isEnabled checks if debugging is enabled
 func (d *DebugFramework) isEnabled() bool {
-	// Check JBP_CONFIG_DEBUG environment variable
+	// Check BPL_DEBUG_ENABLED first (Cloud Native Buildpacks convention)
+	bplEnabled := os.Getenv("BPL_DEBUG_ENABLED")
+	if bplEnabled == "true" || bplEnabled == "1" {
+		return true
+	}
+	if bplEnabled == "false" || bplEnabled == "0" {
+		return false
+	}
+
+	// Check JBP_CONFIG_DEBUG environment variable (Java Buildpack convention)
 	config := os.Getenv("JBP_CONFIG_DEBUG")
 
 	// Parse the config to check for enabled: true
@@ -102,7 +111,15 @@ func (d *DebugFramework) isEnabled() bool {
 
 // getPort returns the debug port
 func (d *DebugFramework) getPort() int {
-	// Check JBP_CONFIG_DEBUG for port setting
+	// Check BPL_DEBUG_PORT first (Cloud Native Buildpacks convention)
+	bplPort := os.Getenv("BPL_DEBUG_PORT")
+	if bplPort != "" {
+		if port, err := strconv.Atoi(bplPort); err == nil && port > 0 {
+			return port
+		}
+	}
+
+	// Check JBP_CONFIG_DEBUG for port setting (Java Buildpack convention)
 	config := os.Getenv("JBP_CONFIG_DEBUG")
 	if config != "" {
 		// Simple parsing - look for port: XXXX

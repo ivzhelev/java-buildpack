@@ -130,20 +130,37 @@ func (e *ElasticApmAgentFramework) findElasticApmService() *VCAPService {
 		return nil
 	}
 
-	// Look for service with "elastic-apm" in the label
-	for label, services := range vcapServices {
-		if strings.Contains(strings.ToLower(label), "elastic-apm") {
+	// Use helper methods for detection
+	// Elastic APM can be bound as:
+	// - "elastic-apm" service (marketplace or label)
+	// - Services with "elastic-apm" or "elastic" tag
+	// - User-provided services with these patterns in the name (Docker platform)
+	if vcapServices.HasService("elastic-apm") ||
+		vcapServices.HasService("elastic") ||
+		vcapServices.HasTag("elastic-apm") ||
+		vcapServices.HasTag("elastic") {
+		// Return first elastic-apm service from any label
+		for _, services := range vcapServices {
 			if len(services) > 0 {
-				return &services[0]
+				// Check if this service has elastic-apm tags or credentials
+				for _, service := range services {
+					for _, tag := range service.Tags {
+						if strings.Contains(strings.ToLower(tag), "elastic") {
+							return &service
+						}
+					}
+				}
 			}
 		}
 	}
 
-	// Also check tags
-	for _, services := range vcapServices {
-		for _, service := range services {
-			for _, tag := range service.Tags {
-				if strings.Contains(strings.ToLower(tag), "elastic-apm") {
+	// Check user-provided services by name pattern
+	if vcapServices.HasServiceByNamePattern("elastic-apm") ||
+		vcapServices.HasServiceByNamePattern("elastic") {
+		// Look for service with elastic in the name
+		if userProvided, ok := vcapServices["user-provided"]; ok {
+			for _, service := range userProvided {
+				if strings.Contains(strings.ToLower(service.Name), "elastic") {
 					return &service
 				}
 			}
@@ -153,16 +170,18 @@ func (e *ElasticApmAgentFramework) findElasticApmService() *VCAPService {
 	return nil
 }
 
-// hasRequiredCredentials checks if service has server_urls and secret_token
+// hasRequiredCredentials checks if service has server_url(s) and secret_token
 func (e *ElasticApmAgentFramework) hasRequiredCredentials(service *VCAPService) bool {
 	if service == nil || service.Credentials == nil {
 		return false
 	}
 
+	// Accept both server_url (singular) and server_urls (plural)
+	_, hasServerURL := service.Credentials["server_url"]
 	_, hasServerURLs := service.Credentials["server_urls"]
 	_, hasSecretToken := service.Credentials["secret_token"]
 
-	return hasServerURLs && hasSecretToken
+	return (hasServerURL || hasServerURLs) && hasSecretToken
 }
 
 // buildConfiguration builds the Elastic APM configuration map
@@ -172,8 +191,10 @@ func (e *ElasticApmAgentFramework) buildConfiguration() map[string]string {
 	// Default configuration
 	config["log_file_name"] = "STDOUT"
 
-	// Add service credentials
-	if serverURLs, ok := e.service.Credentials["server_urls"].(string); ok {
+	// Add service credentials - accept both server_url (singular) and server_urls (plural)
+	if serverURL, ok := e.service.Credentials["server_url"].(string); ok {
+		config["server_urls"] = serverURL
+	} else if serverURLs, ok := e.service.Credentials["server_urls"].(string); ok {
 		config["server_urls"] = serverURLs
 	}
 	if secretToken, ok := e.service.Credentials["secret_token"].(string); ok {

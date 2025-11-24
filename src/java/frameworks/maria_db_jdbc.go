@@ -105,26 +105,39 @@ func (f *MariaDBJDBCFramework) hasMariaDBService() bool {
 		return false
 	}
 
-	for label, services := range vcapServices {
-		// Check service name/label
-		labelLower := strings.ToLower(label)
-		if strings.Contains(labelLower, "mysql") || strings.Contains(labelLower, "mariadb") {
-			// Ensure service has URI credentials
-			for _, service := range services {
-				if _, hasURI := service.Credentials["uri"]; hasURI {
-					return true
-				}
-			}
-		}
+	// Use helper methods to check for MariaDB/MySQL service
+	// This checks service labels, tags, and service names
+	hasMySQL := vcapServices.HasService("mysql") ||
+		vcapServices.HasTag("mysql") ||
+		vcapServices.HasServiceByNamePattern("mysql")
 
-		// Check tags
+	hasMariaDB := vcapServices.HasService("mariadb") ||
+		vcapServices.HasTag("mariadb") ||
+		vcapServices.HasServiceByNamePattern("mariadb")
+
+	if !hasMySQL && !hasMariaDB {
+		return false
+	}
+
+	// Verify the service has a 'uri' credential
+	for _, services := range vcapServices {
 		for _, service := range services {
+			// Check if service name, label, or tags contain "mysql" or "mariadb"
+			nameMatch := contains(strings.ToLower(service.Name), "mysql") ||
+				contains(strings.ToLower(service.Name), "mariadb")
+			tagMatch := false
+
 			for _, tag := range service.Tags {
 				tagLower := strings.ToLower(tag)
-				if strings.Contains(tagLower, "mysql") || strings.Contains(tagLower, "mariadb") {
-					if _, hasURI := service.Credentials["uri"]; hasURI {
-						return true
-					}
+				if contains(tagLower, "mysql") || contains(tagLower, "mariadb") {
+					tagMatch = true
+					break
+				}
+			}
+
+			if nameMatch || tagMatch {
+				if _, hasURI := service.Credentials["uri"]; hasURI {
+					return true
 				}
 			}
 		}

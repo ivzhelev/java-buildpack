@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // SkyWalkingAgentFramework represents the Apache SkyWalking agent framework
@@ -36,16 +35,28 @@ func NewSkyWalkingAgentFramework(ctx *Context) *SkyWalkingAgentFramework {
 
 // Detect checks if SkyWalking agent should be enabled
 func (s *SkyWalkingAgentFramework) Detect() (string, error) {
-	// Check for skywalking service binding
-	if s.hasServiceBinding() {
-		s.context.Log.Debug("SkyWalking agent framework detected via service binding")
-		return "sky-walking-agent", nil
-	}
-
 	// Check for SW_AGENT_COLLECTOR_BACKEND_SERVICES environment variable
 	if os.Getenv("SW_AGENT_COLLECTOR_BACKEND_SERVICES") != "" {
 		s.context.Log.Debug("SkyWalking agent framework detected via SW_AGENT_COLLECTOR_BACKEND_SERVICES")
-		return "sky-walking-agent", nil
+		return "SkyWalking", nil
+	}
+
+	// Check for SkyWalking service binding
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		s.context.Log.Warning("Failed to parse VCAP_SERVICES: %s", err.Error())
+		return "", nil
+	}
+
+	// SkyWalking can be bound as:
+	// - "skywalking" service (marketplace or label)
+	// - Services with "skywalking" tag
+	// - User-provided services with "skywalking" in the name (Docker platform)
+	if vcapServices.HasService("skywalking") ||
+		vcapServices.HasTag("skywalking") ||
+		vcapServices.HasServiceByNamePattern("skywalking") {
+		s.context.Log.Info("SkyWalking service detected!")
+		return "SkyWalking", nil
 	}
 
 	s.context.Log.Debug("SkyWalking agent: no service binding or environment variables found")
@@ -122,46 +133,6 @@ func (s *SkyWalkingAgentFramework) Finalize() error {
 }
 
 // hasServiceBinding checks if there's a skywalking service binding
-func (s *SkyWalkingAgentFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
-		return false
-	}
-
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for skywalking service
-	serviceNames := []string{
-		"skywalking",
-		"sky-walking",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "skywalking") {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false
-}
 
 // SkyWalkingCredentials holds SkyWalking agent credentials
 type SkyWalkingCredentials struct {

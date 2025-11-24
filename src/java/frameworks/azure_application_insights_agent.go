@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // AzureApplicationInsightsAgentFramework represents the Azure Application Insights Java agent framework
@@ -36,22 +35,42 @@ func NewAzureApplicationInsightsAgentFramework(ctx *Context) *AzureApplicationIn
 
 // Detect checks if Azure Application Insights should be enabled
 func (a *AzureApplicationInsightsAgentFramework) Detect() (string, error) {
-	// Check for Azure Application Insights service binding
-	if a.hasServiceBinding() {
-		a.context.Log.Debug("Azure Application Insights agent framework detected via service binding")
-		return "azure-application-insights-agent", nil
-	}
-
 	// Check for connection string environment variable
 	if os.Getenv("APPLICATIONINSIGHTS_CONNECTION_STRING") != "" {
 		a.context.Log.Debug("Azure Application Insights agent framework detected via APPLICATIONINSIGHTS_CONNECTION_STRING")
-		return "azure-application-insights-agent", nil
+		return "Azure Application Insights", nil
 	}
 
 	// Check for instrumentation key environment variable
 	if os.Getenv("APPINSIGHTS_INSTRUMENTATIONKEY") != "" {
 		a.context.Log.Debug("Azure Application Insights agent framework detected via APPINSIGHTS_INSTRUMENTATIONKEY")
-		return "azure-application-insights-agent", nil
+		return "Azure Application Insights", nil
+	}
+
+	// Check for Azure Application Insights service binding
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		a.context.Log.Warning("Failed to parse VCAP_SERVICES: %s", err.Error())
+		return "", nil
+	}
+
+	// Azure Application Insights can be bound as:
+	// - "azure-application-insights" service (marketplace or label)
+	// - "application-insights" or "applicationinsights" service
+	// - Services with "application-insights", "applicationinsights", or "app-insights" tag
+	// - User-provided services with these patterns in the name (Docker platform)
+	if vcapServices.HasService("azure-application-insights") ||
+		vcapServices.HasService("application-insights") ||
+		vcapServices.HasService("applicationinsights") ||
+		vcapServices.HasTag("application-insights") ||
+		vcapServices.HasTag("applicationinsights") ||
+		vcapServices.HasTag("app-insights") ||
+		vcapServices.HasServiceByNamePattern("application-insights") ||
+		vcapServices.HasServiceByNamePattern("applicationinsights") ||
+		vcapServices.HasServiceByNamePattern("app-insights") ||
+		vcapServices.HasServiceByNamePattern("insights") {
+		a.context.Log.Info("Azure Application Insights service detected!")
+		return "Azure Application Insights", nil
 	}
 
 	a.context.Log.Debug("Azure Application Insights agent: no service binding or environment variables found")
@@ -131,50 +150,6 @@ func (a *AzureApplicationInsightsAgentFramework) Finalize() error {
 
 	a.context.Log.Info("Azure Application Insights agent configured")
 	return nil
-}
-
-// hasServiceBinding checks if there's an Azure Application Insights service binding
-func (a *AzureApplicationInsightsAgentFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
-		return false
-	}
-
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for various Azure Application Insights service names
-	serviceNames := []string{
-		"azure-application-insights",
-		"application-insights",
-		"applicationinsights",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check for user-provided services with Azure Application Insights tags
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "application-insights") ||
-							strings.Contains(strings.ToLower(tagStr), "applicationinsights") {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 // AzureCredentials holds Azure Application Insights credentials

@@ -181,6 +181,213 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 				})
 			})
 
+			context("with Azure Application Insights service binding", func() {
+				it("detects and installs Azure Application Insights agent", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"azure-application-insights": {
+								"connection_string": "InstrumentationKey=12345678-1234-1234-1234-123456789abc;IngestionEndpoint=https://eastus-1.in.applicationinsights.azure.com/",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Azure Application Insights"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+
+				it("configures Azure Application Insights with instrumentation key", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"my-app-insights": {
+								"instrumentation_key": "87654321-4321-4321-4321-cba987654321",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "17",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Azure Application Insights"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with SkyWalking service binding", func() {
+				it("detects and installs SkyWalking agent", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"skywalking": {
+								"oap_server": "skywalking.example.com:11800",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("SkyWalking"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+
+				it("configures SkyWalking with OAP server address", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"my-skywalking": {
+								"oap_server":   "oap.skywalking.prod:11800",
+								"service_name": "my-java-app",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "17",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("SkyWalking"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with Splunk OTEL service binding", func() {
+				it("detects and installs Splunk OTEL Java agent", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"splunk-otel": {
+								"access_token": "test-splunk-token-xyz123",
+								"realm":        "us0",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Splunk OTEL"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+
+				it("configures Splunk OTEL with realm and access token", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"my-splunk-otel": {
+								"access_token": "ABC123XYZ789",
+								"realm":        "eu0",
+								"endpoint":     "https://ingest.eu0.signalfx.com",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "17",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Splunk OTEL"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with Google Stackdriver Profiler service binding", func() {
+				it("detects and installs Google Stackdriver Profiler", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"google-stackdriver-profiler": {
+								"project_id": "my-gcp-project-123456",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Google Stackdriver Profiler"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with Datadog service binding", func() {
+				it("detects and installs Datadog Javaagent", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"datadog": {
+								"api_key": "test-datadog-api-key-xyz",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Datadog"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+
+				it("configures Datadog with API key from service binding", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"my-datadog-service": {
+								"api_key": "dd-api-key-123abc456def",
+								"site":    "datadoghq.eu",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "17",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Datadog"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with Elastic APM service binding", func() {
+				it("detects and installs Elastic APM agent", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"elastic-apm": {
+								"server_url":   "https://apm.elastic.example.com:8200",
+								"secret_token": "test-elastic-token",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Elastic APM"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+
+				it("configures Elastic APM with server URL and token", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"my-elastic-apm": {
+								"server_url":   "https://apm.production.example.com:8200",
+								"secret_token": "elastic-secret-xyz123",
+								"service_name": "my-java-app",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "17",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Elastic APM"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
 			context("without APM service bindings", func() {
 				it("does not install any APM agents", func() {
 					deployment, logs, err := platform.Deploy.
@@ -193,6 +400,90 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					// No APM agents should be mentioned
 					Expect(logs.String()).NotTo(ContainSubstring("New Relic Agent"))
 					Expect(logs.String()).NotTo(ContainSubstring("AppDynamics Agent"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+		})
+
+		context("JDBC Drivers", func() {
+			context("with PostgreSQL service binding", func() {
+				it("detects and installs PostgreSQL JDBC driver", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"postgres": {
+								"uri":      "postgres://user:password@localhost:5432/mydb",
+								"username": "testuser",
+								"password": "testpass",
+								"hostname": "postgres.example.com",
+								"port":     "5432",
+								"name":     "mydb",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("PostgreSQL JDBC"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with MariaDB service binding", func() {
+				it("detects and installs MariaDB JDBC driver", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"mariadb": {
+								"uri":      "mysql://user:password@localhost:3306/mydb",
+								"username": "testuser",
+								"password": "testpass",
+								"hostname": "mariadb.example.com",
+								"port":     "3306",
+								"name":     "mydb",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("MariaDB JDBC"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+		})
+
+		context("Utility Frameworks", func() {
+			context("with Debug enabled", func() {
+				it("configures remote debugging via JDWP", func() {
+					deployment, logs, err := platform.Deploy.
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION":   "11",
+							"BPL_DEBUG_ENABLED": "true",
+							"BPL_DEBUG_PORT":    "8000",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Debug"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
+			context("with JMX enabled", func() {
+				it("configures remote JMX monitoring", func() {
+					deployment, logs, err := platform.Deploy.
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+							"BPL_JMX_ENABLED": "true",
+							"BPL_JMX_PORT":    "5000",
+						}).
+						Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("JMX"))
 					Expect(deployment.ExternalURL).NotTo(BeEmpty())
 				})
 			})

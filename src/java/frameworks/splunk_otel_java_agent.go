@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // SplunkOtelJavaAgentFramework represents the Splunk Distribution of OpenTelemetry Java agent framework
@@ -36,22 +35,37 @@ func NewSplunkOtelJavaAgentFramework(ctx *Context) *SplunkOtelJavaAgentFramework
 
 // Detect checks if Splunk OTEL Java agent should be enabled
 func (s *SplunkOtelJavaAgentFramework) Detect() (string, error) {
-	// Check for splunk service binding
-	if s.hasServiceBinding() {
-		s.context.Log.Debug("Splunk OTEL Java agent framework detected via service binding")
-		return "splunk-otel-java-agent", nil
-	}
-
 	// Check for SPLUNK_OTEL_AGENT environment variable
 	if os.Getenv("SPLUNK_OTEL_AGENT") != "" {
 		s.context.Log.Debug("Splunk OTEL Java agent framework detected via SPLUNK_OTEL_AGENT")
-		return "splunk-otel-java-agent", nil
+		return "Splunk OTEL", nil
 	}
 
 	// Check for OTEL_EXPORTER_OTLP_ENDPOINT
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
 		s.context.Log.Debug("Splunk OTEL Java agent framework detected via OTEL_EXPORTER_OTLP_ENDPOINT")
-		return "splunk-otel-java-agent", nil
+		return "Splunk OTEL", nil
+	}
+
+	// Check for Splunk OTEL service binding
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		s.context.Log.Warning("Failed to parse VCAP_SERVICES: %s", err.Error())
+		return "", nil
+	}
+
+	// Splunk OTEL can be bound as:
+	// - "splunk" or "splunk-otel" service (marketplace or label)
+	// - Services with "splunk" or "otel" tag
+	// - User-provided services with these patterns in the name (Docker platform)
+	if vcapServices.HasService("splunk") ||
+		vcapServices.HasService("splunk-otel") ||
+		vcapServices.HasTag("splunk") ||
+		vcapServices.HasTag("otel") ||
+		vcapServices.HasServiceByNamePattern("splunk") ||
+		vcapServices.HasServiceByNamePattern("otel") {
+		s.context.Log.Info("Splunk OTEL service detected!")
+		return "Splunk OTEL", nil
 	}
 
 	s.context.Log.Debug("Splunk OTEL Java agent: no service binding or environment variables found")
@@ -144,50 +158,6 @@ func (s *SplunkOtelJavaAgentFramework) Finalize() error {
 
 	s.context.Log.Info("Splunk OTEL Java agent configured")
 	return nil
-}
-
-// hasServiceBinding checks if there's a splunk service binding
-func (s *SplunkOtelJavaAgentFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
-		return false
-	}
-
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for splunk service
-	serviceNames := []string{
-		"splunk",
-		"splunk-otel",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						tagLower := strings.ToLower(tagStr)
-						if strings.Contains(tagLower, "splunk") ||
-							strings.Contains(tagLower, "otel") {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 // SplunkCredentials holds Splunk OTEL credentials
