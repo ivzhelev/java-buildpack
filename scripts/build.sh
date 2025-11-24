@@ -30,6 +30,9 @@ for os in "${oses[@]}"; do
             output="${output}.exe"
         fi
         
+        # Remove existing file (could be bash wrapper or old binary)
+        rm -f "${output}"
+        
         echo "-----> Building ${name} for ${os}"
         CGO_ENABLED=0 GOOS="${os}" go build \
             -mod vendor \

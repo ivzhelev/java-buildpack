@@ -51,7 +51,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(logs.String()).To(ContainSubstring("Open Jdk JRE"))
+				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
 				Expect(deployment.ExternalURL).NotTo(BeEmpty())
 			})
 
@@ -63,7 +63,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(logs.String()).To(ContainSubstring("Open Jdk JRE"))
+				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
 				Expect(deployment.ExternalURL).NotTo(BeEmpty())
 			})
 
@@ -75,7 +75,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(logs.String()).To(ContainSubstring("Open Jdk JRE"))
+				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
 				Expect(deployment.ExternalURL).NotTo(BeEmpty())
 			})
 		})
