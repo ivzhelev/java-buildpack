@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // GoogleStackdriverProfilerFramework represents the Google Stackdriver Profiler framework
@@ -36,19 +35,33 @@ func NewGoogleStackdriverProfilerFramework(ctx *Context) *GoogleStackdriverProfi
 
 // Detect checks if Google Stackdriver Profiler should be enabled
 func (g *GoogleStackdriverProfilerFramework) Detect() (string, error) {
-	// Check for google-stackdriver-profiler service binding
-	if g.hasServiceBinding() {
-		g.context.Log.Debug("Google Stackdriver Profiler framework detected via service binding")
-		return "google-stackdriver-profiler", nil
-	}
-
 	// Check for GOOGLE_APPLICATION_CREDENTIALS
 	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
 		g.context.Log.Debug("Google Stackdriver Profiler framework detected via GOOGLE_APPLICATION_CREDENTIALS")
 		return "google-stackdriver-profiler", nil
 	}
 
-	g.context.Log.Debug("Google Stackdriver Profiler: no service binding found")
+	// Check for google-stackdriver-profiler service binding
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		g.context.Log.Warning("Failed to parse VCAP_SERVICES: %s", err.Error())
+		return "", nil
+	}
+
+	// Google Stackdriver Profiler can be bound as:
+	// - "google-stackdriver-profiler" or "stackdriver-profiler" service (marketplace or label)
+	// - Services with "stackdriver-profiler" tag
+	// - User-provided services with these patterns in the name (Docker platform)
+	if vcapServices.HasService("google-stackdriver-profiler") ||
+		vcapServices.HasService("stackdriver-profiler") ||
+		vcapServices.HasTag("stackdriver-profiler") ||
+		vcapServices.HasServiceByNamePattern("stackdriver-profiler") ||
+		vcapServices.HasServiceByNamePattern("stackdriver") {
+		g.context.Log.Info("Google Stackdriver Profiler service detected!")
+		return "google-stackdriver-profiler", nil
+	}
+
+	g.context.Log.Debug("Google Stackdriver Profiler: no service binding or environment variables found")
 	return "", nil
 }
 
@@ -118,48 +131,6 @@ func (g *GoogleStackdriverProfilerFramework) Finalize() error {
 
 	g.context.Log.Info("Google Stackdriver Profiler configured")
 	return nil
-}
-
-// hasServiceBinding checks if there's a google-stackdriver-profiler service binding
-func (g *GoogleStackdriverProfilerFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
-		return false
-	}
-
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for Google Stackdriver Profiler service
-	serviceNames := []string{
-		"google-stackdriver-profiler",
-		"stackdriver-profiler",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "stackdriver-profiler") {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 // GoogleProfilerCredentials holds Google Cloud credentials

@@ -74,7 +74,16 @@ func (j *JmxFramework) Finalize() error {
 
 // isEnabled checks if JMX is enabled
 func (j *JmxFramework) isEnabled() bool {
-	// Check JBP_CONFIG_JMX environment variable
+	// Check BPL_JMX_ENABLED first (Cloud Native Buildpacks convention)
+	bplEnabled := os.Getenv("BPL_JMX_ENABLED")
+	if bplEnabled == "true" || bplEnabled == "1" {
+		return true
+	}
+	if bplEnabled == "false" || bplEnabled == "0" {
+		return false
+	}
+
+	// Check JBP_CONFIG_JMX environment variable (Java Buildpack convention)
 	config := os.Getenv("JBP_CONFIG_JMX")
 
 	// Parse the config to check for enabled: true
@@ -93,7 +102,15 @@ func (j *JmxFramework) isEnabled() bool {
 
 // getPort returns the JMX port
 func (j *JmxFramework) getPort() int {
-	// Check JBP_CONFIG_JMX for port setting
+	// Check BPL_JMX_PORT first (Cloud Native Buildpacks convention)
+	bplPort := os.Getenv("BPL_JMX_PORT")
+	if bplPort != "" {
+		if port, err := strconv.Atoi(bplPort); err == nil && port > 0 {
+			return port
+		}
+	}
+
+	// Check JBP_CONFIG_JMX for port setting (Java Buildpack convention)
 	config := os.Getenv("JBP_CONFIG_JMX")
 	if config != "" {
 		// Simple parsing - look for port: XXXX

@@ -92,24 +92,34 @@ func (p *PostgresqlJdbcFramework) hasPostgresService() bool {
 		return false
 	}
 
-	// Check for PostgreSQL service with 'uri' credential
-	for label, services := range vcapServices {
-		// Check service label contains "postgres"
-		if contains(label, "postgres") {
-			for _, service := range services {
-				if _, hasURI := service.Credentials["uri"]; hasURI {
-					return true
-				}
-			}
-		}
+	// Use helper methods to check for PostgreSQL service
+	// This checks service labels, tags, and service names
+	hasPostgres := vcapServices.HasService("postgres") ||
+		vcapServices.HasTag("postgres") ||
+		vcapServices.HasServiceByNamePattern("postgres")
 
-		// Also check service tags
+	if !hasPostgres {
+		return false
+	}
+
+	// Verify the service has a 'uri' credential
+	for _, services := range vcapServices {
 		for _, service := range services {
+			// Check if service name, label, or tags contain "postgres"
+			nameMatch := contains(service.Name, "postgres")
+			labelMatch := false
+			tagMatch := false
+
 			for _, tag := range service.Tags {
 				if contains(tag, "postgres") {
-					if _, hasURI := service.Credentials["uri"]; hasURI {
-						return true
-					}
+					tagMatch = true
+					break
+				}
+			}
+
+			if nameMatch || labelMatch || tagMatch {
+				if _, hasURI := service.Credentials["uri"]; hasURI {
+					return true
 				}
 			}
 		}

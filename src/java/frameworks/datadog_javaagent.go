@@ -40,8 +40,26 @@ func NewDatadogJavaagentFramework(ctx *Context) *DatadogJavaagentFramework {
 func (d *DatadogJavaagentFramework) Detect() (string, error) {
 	// Check for DD_API_KEY environment variable
 	ddAPIKey := os.Getenv("DD_API_KEY")
-	if ddAPIKey == "" {
-		d.context.Log.Debug("Datadog Javaagent: DD_API_KEY not set")
+
+	// Also check for datadog service binding
+	hasService := false
+	vcapServices, err := GetVCAPServices()
+	if err == nil {
+		// Datadog can be bound as:
+		// - "datadog" service (marketplace or label)
+		// - Services with "datadog" tag
+		// - User-provided services with "datadog" in the name (Docker platform)
+		if vcapServices.HasService("datadog") ||
+			vcapServices.HasTag("datadog") ||
+			vcapServices.HasServiceByNamePattern("datadog") {
+			hasService = true
+			d.context.Log.Info("Datadog service detected!")
+		}
+	}
+
+	// Require either DD_API_KEY or service binding
+	if ddAPIKey == "" && !hasService {
+		d.context.Log.Debug("Datadog Javaagent: DD_API_KEY not set and no service binding found")
 		return "", nil
 	}
 
