@@ -1,0 +1,306 @@
+// Cloud Foundry Java Buildpack
+// Copyright 2013-2021 the original author or authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package frameworks
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// SplunkOtelJavaAgentFramework represents the Splunk Distribution of OpenTelemetry Java agent framework
+type SplunkOtelJavaAgentFramework struct {
+	context *Context
+	jarPath string
+}
+
+// NewSplunkOtelJavaAgentFramework creates a new Splunk OTEL Java agent framework instance
+func NewSplunkOtelJavaAgentFramework(ctx *Context) *SplunkOtelJavaAgentFramework {
+	return &SplunkOtelJavaAgentFramework{context: ctx}
+}
+
+// Detect checks if Splunk OTEL Java agent should be enabled
+func (s *SplunkOtelJavaAgentFramework) Detect() (string, error) {
+	// Check for splunk service binding
+	if s.hasServiceBinding() {
+		s.context.Log.Debug("Splunk OTEL Java agent framework detected via service binding")
+		return "splunk-otel-java-agent", nil
+	}
+
+	// Check for SPLUNK_OTEL_AGENT environment variable
+	if os.Getenv("SPLUNK_OTEL_AGENT") != "" {
+		s.context.Log.Debug("Splunk OTEL Java agent framework detected via SPLUNK_OTEL_AGENT")
+		return "splunk-otel-java-agent", nil
+	}
+
+	// Check for OTEL_EXPORTER_OTLP_ENDPOINT
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		s.context.Log.Debug("Splunk OTEL Java agent framework detected via OTEL_EXPORTER_OTLP_ENDPOINT")
+		return "splunk-otel-java-agent", nil
+	}
+
+	s.context.Log.Debug("Splunk OTEL Java agent: no service binding or environment variables found")
+	return "", nil
+}
+
+// Supply downloads and installs the Splunk OTEL Java agent
+func (s *SplunkOtelJavaAgentFramework) Supply() error {
+	s.context.Log.BeginStep("Installing Splunk OTEL Java agent")
+
+	// Get dependency from manifest
+	dep, err := s.context.Manifest.DefaultVersion("splunk-otel-java-agent")
+	if err != nil {
+		s.context.Log.Warning("Unable to find Splunk OTEL Java agent in manifest: %s", err)
+		return nil // Non-blocking
+	}
+
+	// Install the agent
+	agentDir := filepath.Join(s.context.Stager.DepDir(), "splunk_otel_java_agent")
+	if err := s.context.Installer.InstallDependency(dep, agentDir); err != nil {
+		s.context.Log.Warning("Failed to install Splunk OTEL Java agent: %s", err)
+		return nil // Non-blocking
+	}
+
+	// Find the installed agent JAR
+	jarPattern := filepath.Join(agentDir, "splunk-otel-javaagent.jar")
+	if _, err := os.Stat(jarPattern); err != nil {
+		// Try alternative name
+		jarPattern = filepath.Join(agentDir, "splunk-otel-javaagent-all.jar")
+		if _, err := os.Stat(jarPattern); err != nil {
+			s.context.Log.Warning("Splunk OTEL Java agent JAR not found after installation")
+			return nil
+		}
+	}
+	s.jarPath = jarPattern
+
+	s.context.Log.Info("Splunk OTEL Java agent %s installed", dep.Version)
+	return nil
+}
+
+// Finalize configures the Splunk OTEL Java agent
+func (s *SplunkOtelJavaAgentFramework) Finalize() error {
+	if s.jarPath == "" {
+		return nil
+	}
+
+	s.context.Log.BeginStep("Configuring Splunk OTEL Java agent")
+
+	// Get credentials from service binding
+	credentials := s.getCredentials()
+
+	// Add javaagent to JAVA_OPTS
+	javaagentOpt := fmt.Sprintf("-javaagent:%s", s.jarPath)
+	if err := s.appendToJavaOpts(javaagentOpt); err != nil {
+		s.context.Log.Warning("Failed to add Splunk OTEL Java agent to JAVA_OPTS: %s", err)
+		return nil
+	}
+
+	// Configure service name
+	if appName := s.getApplicationName(); appName != "" {
+		nameOpt := fmt.Sprintf("-Dotel.service.name=%s", appName)
+		if err := s.appendToJavaOpts(nameOpt); err != nil {
+			s.context.Log.Warning("Failed to set service name: %s", err)
+		}
+	}
+
+	// Configure OTLP endpoint
+	if credentials.OTLPEndpoint != "" {
+		endpointOpt := fmt.Sprintf("-Dotel.exporter.otlp.endpoint=%s", credentials.OTLPEndpoint)
+		if err := s.appendToJavaOpts(endpointOpt); err != nil {
+			s.context.Log.Warning("Failed to set OTLP endpoint: %s", err)
+		}
+	}
+
+	// Configure access token
+	if credentials.AccessToken != "" {
+		tokenOpt := fmt.Sprintf("-Dsplunk.access.token=%s", credentials.AccessToken)
+		if err := s.appendToJavaOpts(tokenOpt); err != nil {
+			s.context.Log.Warning("Failed to set access token: %s", err)
+		}
+	}
+
+	// Configure realm
+	if credentials.Realm != "" {
+		realmOpt := fmt.Sprintf("-Dsplunk.realm=%s", credentials.Realm)
+		if err := s.appendToJavaOpts(realmOpt); err != nil {
+			s.context.Log.Warning("Failed to set realm: %s", err)
+		}
+	}
+
+	s.context.Log.Info("Splunk OTEL Java agent configured")
+	return nil
+}
+
+// hasServiceBinding checks if there's a splunk service binding
+func (s *SplunkOtelJavaAgentFramework) hasServiceBinding() bool {
+	vcapServices := os.Getenv("VCAP_SERVICES")
+	if vcapServices == "" {
+		return false
+	}
+
+	var services map[string][]map[string]interface{}
+	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
+		return false
+	}
+
+	// Check for splunk service
+	serviceNames := []string{
+		"splunk",
+		"splunk-otel",
+	}
+
+	for _, serviceName := range serviceNames {
+		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
+			return true
+		}
+	}
+
+	// Check user-provided services
+	if userProvided, ok := services["user-provided"]; ok {
+		for _, service := range userProvided {
+			if tags, ok := service["tags"].([]interface{}); ok {
+				for _, tag := range tags {
+					if tagStr, ok := tag.(string); ok {
+						tagLower := strings.ToLower(tagStr)
+						if strings.Contains(tagLower, "splunk") ||
+							strings.Contains(tagLower, "otel") {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// SplunkCredentials holds Splunk OTEL credentials
+type SplunkCredentials struct {
+	OTLPEndpoint string
+	AccessToken  string
+	Realm        string
+}
+
+// getCredentials retrieves Splunk OTEL credentials
+func (s *SplunkOtelJavaAgentFramework) getCredentials() SplunkCredentials {
+	creds := SplunkCredentials{}
+
+	// Check environment variables first
+	creds.OTLPEndpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	creds.AccessToken = os.Getenv("SPLUNK_ACCESS_TOKEN")
+	creds.Realm = os.Getenv("SPLUNK_REALM")
+
+	if creds.OTLPEndpoint != "" {
+		return creds
+	}
+
+	// Check service binding
+	vcapServices := os.Getenv("VCAP_SERVICES")
+	if vcapServices == "" {
+		return creds
+	}
+
+	var services map[string][]map[string]interface{}
+	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
+		return creds
+	}
+
+	// Look for splunk service
+	serviceNames := []string{
+		"splunk",
+		"splunk-otel",
+		"user-provided",
+	}
+
+	for _, serviceName := range serviceNames {
+		if serviceList, ok := services[serviceName]; ok {
+			for _, service := range serviceList {
+				if credentials, ok := service["credentials"].(map[string]interface{}); ok {
+					// Get OTLP endpoint
+					if endpoint, ok := credentials["otlp_endpoint"].(string); ok {
+						creds.OTLPEndpoint = endpoint
+					} else if endpoint, ok := credentials["otlpEndpoint"].(string); ok {
+						creds.OTLPEndpoint = endpoint
+					} else if endpoint, ok := credentials["endpoint"].(string); ok {
+						creds.OTLPEndpoint = endpoint
+					}
+
+					// Get access token
+					if token, ok := credentials["access_token"].(string); ok {
+						creds.AccessToken = token
+					} else if token, ok := credentials["accessToken"].(string); ok {
+						creds.AccessToken = token
+					} else if token, ok := credentials["token"].(string); ok {
+						creds.AccessToken = token
+					}
+
+					// Get realm
+					if realm, ok := credentials["realm"].(string); ok {
+						creds.Realm = realm
+					}
+
+					if creds.OTLPEndpoint != "" {
+						return creds
+					}
+				}
+			}
+		}
+	}
+
+	return creds
+}
+
+// getApplicationName returns the application name
+func (s *SplunkOtelJavaAgentFramework) getApplicationName() string {
+	vcapApp := os.Getenv("VCAP_APPLICATION")
+	if vcapApp == "" {
+		return ""
+	}
+
+	var appData map[string]interface{}
+	if err := json.Unmarshal([]byte(vcapApp), &appData); err != nil {
+		return ""
+	}
+
+	if name, ok := appData["application_name"].(string); ok {
+		return name
+	}
+
+	return ""
+}
+
+// appendToJavaOpts appends a value to JAVA_OPTS
+func (s *SplunkOtelJavaAgentFramework) appendToJavaOpts(value string) error {
+	javaOptsFile := filepath.Join(s.context.Stager.DepDir(), "env", "JAVA_OPTS")
+
+	// Read existing JAVA_OPTS
+	var existingOpts string
+	if data, err := os.ReadFile(javaOptsFile); err == nil {
+		existingOpts = string(data)
+	}
+
+	// Append new value
+	if existingOpts != "" {
+		existingOpts += " "
+	}
+	existingOpts += value
+
+	// Write back
+	return s.context.Stager.WriteEnvFile(javaOptsFile, existingOpts)
+}

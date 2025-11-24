@@ -171,7 +171,17 @@ func (s *Supplier) installFrameworks() error {
 	registry.Register(frameworks.NewDebugFramework(ctx))
 	registry.Register(frameworks.NewJmxFramework(ctx))
 
-	// Additional frameworks (Priority 2+) to be added:
+	// APM Agents (Priority 2)
+	registry.Register(frameworks.NewAzureApplicationInsightsAgentFramework(ctx))
+	registry.Register(frameworks.NewCheckmarxIASTAgentFramework(ctx))
+	registry.Register(frameworks.NewGoogleStackdriverDebuggerFramework(ctx))
+	registry.Register(frameworks.NewGoogleStackdriverProfilerFramework(ctx))
+	registry.Register(frameworks.NewIntroscopeAgentFramework(ctx))
+	registry.Register(frameworks.NewRiverbedAppInternalsAgentFramework(ctx))
+	registry.Register(frameworks.NewSkyWalkingAgentFramework(ctx))
+	registry.Register(frameworks.NewSplunkOtelJavaAgentFramework(ctx))
+
+	// Additional frameworks (Priority 3+) to be added:
 	// registry.Register(frameworks.NewJaCoCoFramework(ctx))
 	// registry.Register(frameworks.NewJRebelFramework(ctx))
 	// etc.
