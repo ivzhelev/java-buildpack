@@ -70,6 +70,10 @@ default_versions:
   version: 14.x
 - name: sealights-agent
   version: 4.x
+- name: container-security-provider
+  version: 1.x
+- name: luna-security-provider
+  version: 7.x
 
 url_to_dependency_map:
 - match: openjdk-jre-(\d+\.\d+\.\d+)
@@ -158,6 +162,12 @@ url_to_dependency_map:
   version: $1
 - match: sealights-java-(\d+\.\d+\.\d+)
   name: sealights-agent
+  version: $1
+- match: container-security-provider-(\d+\.\d+\.\d+)
+  name: container-security-provider
+  version: $1
+- match: luna-security-provider-(\d+\.\d+\.\d+)
+  name: luna-security-provider
   version: $1
 
 dependency_deprecation_dates:
@@ -612,6 +622,33 @@ dependencies:
   version: 4.0.2570
   uri: https://agents.sealights.co/sealights-java/sealights-java-4.0.2570.zip
   sha256: 0ed3e0bc83a45d5ae082fb1a2f6df47544c8c51d8dfa249b1fdb4b15c5a0ddea
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# ========================================
+# Container Security Provider
+# ========================================
+# Repository: https://java-buildpack.cloudfoundry.org/container-security-provider/
+# Note: Always enabled by default, provides container-specific security context
+- name: container-security-provider
+  version: 1.20.0
+  uri: https://java-buildpack.cloudfoundry.org/container-security-provider/container-security-provider-1.20.0-RELEASE.jar
+  sha256: fef33f4ffec1451b97253887026ec65ad99df0d2e8f8412e50e2afe5a4f6c62d
+  cf_stacks:
+  - cflinuxfs4
+  - cflinuxfs3
+
+# ========================================
+# Luna Security Provider
+# ========================================
+# Repository: https://java-buildpack.cloudfoundry.org/luna-security-provider/
+# Note: Requires Luna HSM service binding in VCAP_SERVICES
+# Contains native libraries (libLunaAPI.so) and JARs for SafeNet Luna HSM integration
+- name: luna-security-provider
+  version: 7.4.0
+  uri: https://java-buildpack.cloudfoundry.org/luna-security-provider/LunaClient-Minimal-v7.4.0-226.x86_64.tar
+  sha256: e024103719ffa99a011607942ecddfd91c5681113e6cea27f5514bc9fa172875
   cf_stacks:
   - cflinuxfs4
   - cflinuxfs3

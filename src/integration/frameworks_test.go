@@ -896,6 +896,20 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(deployment.ExternalURL).NotTo(BeEmpty())
 				})
 			})
+
+			context("with Container Security Provider", func() {
+				it("detects and configures Container Security Provider", func() {
+					deployment, logs, err := platform.Deploy.
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					Expect(logs.String()).To(ContainSubstring("Container Security Provider"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
 		})
 	}
 }
