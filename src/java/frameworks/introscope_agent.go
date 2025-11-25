@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // IntroscopeAgentFramework represents the CA APM Introscope agent framework
@@ -128,45 +127,25 @@ func (i *IntroscopeAgentFramework) Finalize() error {
 
 // hasServiceBinding checks if there's an introscope service binding
 func (i *IntroscopeAgentFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	// Use standard service detection helpers
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		i.context.Log.Warning("Failed to parse VCAP_SERVICES: %s", err.Error())
 		return false
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for introscope service
-	serviceNames := []string{
-		"introscope",
-		"ca-apm",
-		"ca-wily",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						tagLower := strings.ToLower(tagStr)
-						if strings.Contains(tagLower, "introscope") ||
-							strings.Contains(tagLower, "ca-apm") ||
-							strings.Contains(tagLower, "wily") {
-							return true
-						}
-					}
-				}
-			}
-		}
+	// Check for Introscope/CA APM service bindings using flexible patterns
+	if vcapServices.HasService("introscope") ||
+		vcapServices.HasService("ca-apm") ||
+		vcapServices.HasService("ca-wily") ||
+		vcapServices.HasService("wily-introscope") ||
+		vcapServices.HasTag("introscope") ||
+		vcapServices.HasTag("ca-apm") ||
+		vcapServices.HasTag("wily") ||
+		vcapServices.HasServiceByNamePattern("introscope") ||
+		vcapServices.HasServiceByNamePattern("ca-apm") ||
+		vcapServices.HasServiceByNamePattern("wily") {
+		return true
 	}
 
 	return false
@@ -183,59 +162,59 @@ type IntroscopeCredentials struct {
 func (i *IntroscopeAgentFramework) getCredentials() IntroscopeCredentials {
 	creds := IntroscopeCredentials{}
 
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
 		return creds
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return creds
-	}
+	// Find Introscope service using standard helpers
+	var service *VCAPService
 
-	// Look for introscope service
-	serviceNames := []string{
-		"introscope",
-		"ca-apm",
-		"ca-wily",
-		"user-provided",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok {
-			for _, service := range serviceList {
-				if credentials, ok := service["credentials"].(map[string]interface{}); ok {
-					// Get agent name
-					if agentName, ok := credentials["agent_name"].(string); ok {
-						creds.AgentName = agentName
-					} else if agentName, ok := credentials["agentName"].(string); ok {
-						creds.AgentName = agentName
-					}
-
-					// Get EM host
-					if emHost, ok := credentials["em_host"].(string); ok {
-						creds.EMHost = emHost
-					} else if emHost, ok := credentials["emHost"].(string); ok {
-						creds.EMHost = emHost
-					}
-
-					// Get EM port
-					if emPort, ok := credentials["em_port"].(string); ok {
-						creds.EMPort = emPort
-					} else if emPort, ok := credentials["emPort"].(string); ok {
-						creds.EMPort = emPort
-					} else if emPort, ok := credentials["em_port"].(float64); ok {
-						creds.EMPort = fmt.Sprintf("%.0f", emPort)
-					} else if emPort, ok := credentials["emPort"].(float64); ok {
-						creds.EMPort = fmt.Sprintf("%.0f", emPort)
-					}
-
-					if creds.EMHost != "" {
-						return creds
-					}
-				}
-			}
+	// Try exact service labels first
+	if svc := vcapServices.GetService("introscope"); svc != nil {
+		service = svc
+	} else if svc := vcapServices.GetService("ca-apm"); svc != nil {
+		service = svc
+	} else if svc := vcapServices.GetService("ca-wily"); svc != nil {
+		service = svc
+	} else if svc := vcapServices.GetService("wily-introscope"); svc != nil {
+		service = svc
+	} else {
+		// Try user-provided services with introscope/ca-apm/wily in the name
+		if svc := vcapServices.GetServiceByNamePattern("introscope"); svc != nil {
+			service = svc
+		} else if svc := vcapServices.GetServiceByNamePattern("ca-apm"); svc != nil {
+			service = svc
+		} else if svc := vcapServices.GetServiceByNamePattern("wily"); svc != nil {
+			service = svc
 		}
+	}
+
+	if service == nil {
+		return creds
+	}
+
+	// Extract credentials with flexible key names
+	if agentName, ok := service.Credentials["agent_name"].(string); ok {
+		creds.AgentName = agentName
+	} else if agentName, ok := service.Credentials["agentName"].(string); ok {
+		creds.AgentName = agentName
+	}
+
+	if emHost, ok := service.Credentials["em_host"].(string); ok {
+		creds.EMHost = emHost
+	} else if emHost, ok := service.Credentials["emHost"].(string); ok {
+		creds.EMHost = emHost
+	}
+
+	if emPort, ok := service.Credentials["em_port"].(string); ok {
+		creds.EMPort = emPort
+	} else if emPort, ok := service.Credentials["emPort"].(string); ok {
+		creds.EMPort = emPort
+	} else if emPort, ok := service.Credentials["em_port"].(float64); ok {
+		creds.EMPort = fmt.Sprintf("%.0f", emPort)
+	} else if emPort, ok := service.Credentials["emPort"].(float64); ok {
+		creds.EMPort = fmt.Sprintf("%.0f", emPort)
 	}
 
 	return creds

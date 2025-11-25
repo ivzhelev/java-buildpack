@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // GoogleStackdriverDebuggerFramework represents the Google Stackdriver Debugger framework
@@ -120,41 +119,20 @@ func (g *GoogleStackdriverDebuggerFramework) Finalize() error {
 
 // hasServiceBinding checks if there's a google-stackdriver-debugger service binding
 func (g *GoogleStackdriverDebuggerFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		g.context.Log.Debug("Failed to parse VCAP_SERVICES: %s", err.Error())
 		return false
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for Google Stackdriver Debugger service
-	serviceNames := []string{
-		"google-stackdriver-debugger",
-		"stackdriver-debugger",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "stackdriver-debugger") {
-							return true
-						}
-					}
-				}
-			}
-		}
+	// Check for Google Stackdriver Debugger service binding via multiple methods
+	if vcapServices.HasService("google-stackdriver-debugger") ||
+		vcapServices.HasService("stackdriver-debugger") ||
+		vcapServices.HasTag("stackdriver-debugger") ||
+		vcapServices.HasTag("stackdriver") ||
+		vcapServices.HasServiceByNamePattern("stackdriver-debugger") ||
+		vcapServices.HasServiceByNamePattern("stackdriver") {
+		return true
 	}
 
 	return false
@@ -169,38 +147,34 @@ type GoogleCredentials struct {
 func (g *GoogleStackdriverDebuggerFramework) getCredentials() GoogleCredentials {
 	creds := GoogleCredentials{}
 
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
 		return creds
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return creds
-	}
-
-	// Look for Google service
-	serviceNames := []string{
-		"google-stackdriver-debugger",
-		"stackdriver-debugger",
-		"user-provided",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok {
-			for _, service := range serviceList {
-				if credentials, ok := service["credentials"].(map[string]interface{}); ok {
-					if projectID, ok := credentials["ProjectId"].(string); ok {
-						creds.ProjectID = projectID
-						return creds
-					}
-					if projectID, ok := credentials["project_id"].(string); ok {
-						creds.ProjectID = projectID
-						return creds
-					}
-				}
-			}
+	// Try to find service by exact label first
+	var service *VCAPService
+	if svc := vcapServices.GetService("google-stackdriver-debugger"); svc != nil {
+		service = svc
+	} else if svc := vcapServices.GetService("stackdriver-debugger"); svc != nil {
+		service = svc
+	} else {
+		// Fall back to pattern matching for user-provided services
+		service = vcapServices.GetServiceByNamePattern("stackdriver-debugger")
+		if service == nil {
+			service = vcapServices.GetServiceByNamePattern("stackdriver")
 		}
+	}
+
+	if service == nil {
+		return creds
+	}
+
+	// Extract project ID - try multiple key variations
+	if projectID, ok := service.Credentials["ProjectId"].(string); ok {
+		creds.ProjectID = projectID
+	} else if projectID, ok := service.Credentials["project_id"].(string); ok {
+		creds.ProjectID = projectID
 	}
 
 	return creds

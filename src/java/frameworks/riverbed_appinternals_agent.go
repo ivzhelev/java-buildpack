@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // RiverbedAppInternalsAgentFramework represents the Riverbed AppInternals agent framework
@@ -120,43 +119,20 @@ func (r *RiverbedAppInternalsAgentFramework) Finalize() error {
 
 // hasServiceBinding checks if there's a riverbed-appinternals service binding
 func (r *RiverbedAppInternalsAgentFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		r.context.Log.Debug("Failed to parse VCAP_SERVICES: %s", err.Error())
 		return false
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for riverbed service
-	serviceNames := []string{
-		"riverbed-appinternals",
-		"appinternals",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						tagLower := strings.ToLower(tagStr)
-						if strings.Contains(tagLower, "riverbed") ||
-							strings.Contains(tagLower, "appinternals") {
-							return true
-						}
-					}
-				}
-			}
-		}
+	// Check for Riverbed AppInternals service binding via multiple methods
+	if vcapServices.HasService("riverbed-appinternals") ||
+		vcapServices.HasService("appinternals") ||
+		vcapServices.HasTag("riverbed") ||
+		vcapServices.HasTag("appinternals") ||
+		vcapServices.HasServiceByNamePattern("riverbed") ||
+		vcapServices.HasServiceByNamePattern("appinternals") {
+		return true
 	}
 
 	return false
@@ -172,49 +148,43 @@ type RiverbedCredentials struct {
 func (r *RiverbedAppInternalsAgentFramework) getCredentials() RiverbedCredentials {
 	creds := RiverbedCredentials{}
 
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
 		return creds
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return creds
-	}
-
-	// Look for riverbed service
-	serviceNames := []string{
-		"riverbed-appinternals",
-		"appinternals",
-		"user-provided",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok {
-			for _, service := range serviceList {
-				if credentials, ok := service["credentials"].(map[string]interface{}); ok {
-					// Get moniker
-					if moniker, ok := credentials["moniker"].(string); ok {
-						creds.Moniker = moniker
-					} else if moniker, ok := credentials["rvbd_moniker"].(string); ok {
-						creds.Moniker = moniker
-					}
-
-					// Get analysis server
-					if server, ok := credentials["analysis_server"].(string); ok {
-						creds.AnalysisServer = server
-					} else if server, ok := credentials["analysisServer"].(string); ok {
-						creds.AnalysisServer = server
-					} else if server, ok := credentials["rvbd_analysis_server"].(string); ok {
-						creds.AnalysisServer = server
-					}
-
-					if creds.AnalysisServer != "" {
-						return creds
-					}
-				}
-			}
+	// Try to find service by exact label first
+	var service *VCAPService
+	if svc := vcapServices.GetService("riverbed-appinternals"); svc != nil {
+		service = svc
+	} else if svc := vcapServices.GetService("appinternals"); svc != nil {
+		service = svc
+	} else {
+		// Fall back to pattern matching for user-provided services
+		service = vcapServices.GetServiceByNamePattern("riverbed")
+		if service == nil {
+			service = vcapServices.GetServiceByNamePattern("appinternals")
 		}
+	}
+
+	if service == nil {
+		return creds
+	}
+
+	// Extract moniker (application name) - try multiple key variations
+	if moniker, ok := service.Credentials["moniker"].(string); ok {
+		creds.Moniker = moniker
+	} else if moniker, ok := service.Credentials["rvbd_moniker"].(string); ok {
+		creds.Moniker = moniker
+	}
+
+	// Extract analysis server - try multiple key variations
+	if server, ok := service.Credentials["analysis_server"].(string); ok {
+		creds.AnalysisServer = server
+	} else if server, ok := service.Credentials["analysisServer"].(string); ok {
+		creds.AnalysisServer = server
+	} else if server, ok := service.Credentials["rvbd_analysis_server"].(string); ok {
+		creds.AnalysisServer = server
 	}
 
 	return creds
