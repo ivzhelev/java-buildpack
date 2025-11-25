@@ -87,9 +87,8 @@ func (f *MariaDBJDBCFramework) Finalize() error {
 
 	f.context.Log.BeginStep("Configuring MariaDB JDBC driver")
 
-	// Add to CLASSPATH
-	classpathFile := filepath.Join(f.context.Stager.DepDir(), "env", "CLASSPATH")
-	if err := f.context.Stager.WriteEnvFile(classpathFile, f.jarPath); err != nil {
+	// Add to CLASSPATH environment variable
+	if err := f.context.Stager.WriteEnvFile("CLASSPATH", f.jarPath); err != nil {
 		f.context.Log.Warning("Failed to add MariaDB JDBC to CLASSPATH: %s", err)
 		return nil // Non-blocking
 	}
