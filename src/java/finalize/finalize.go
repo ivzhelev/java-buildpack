@@ -165,6 +165,10 @@ func (f *Finalizer) finalizeFrameworks() error {
 	// mTLS Support (Priority 1)
 	registry.Register(frameworks.NewClientCertificateMapperFramework(ctx))
 
+	// Security Providers (Priority 1)
+	registry.Register(frameworks.NewContainerSecurityProviderFramework(ctx))
+	registry.Register(frameworks.NewLunaSecurityProviderFramework(ctx))
+
 	// Development Tools (Priority 1)
 	registry.Register(frameworks.NewDebugFramework(ctx))
 	registry.Register(frameworks.NewJmxFramework(ctx))
