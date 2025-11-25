@@ -185,6 +185,10 @@ func (f *Finalizer) finalizeFrameworks() error {
 	registry.Register(frameworks.NewJRebelAgentFramework(ctx))
 	registry.Register(frameworks.NewContrastSecurityAgentFramework(ctx))
 	registry.Register(frameworks.NewAspectJWeaverAgentFramework(ctx))
+	registry.Register(frameworks.NewTakipiAgentFramework(ctx))
+	registry.Register(frameworks.NewYourKitProfilerFramework(ctx))
+	registry.Register(frameworks.NewJProfilerProfilerFramework(ctx))
+	registry.Register(frameworks.NewSealightsAgentFramework(ctx))
 
 	// Detect all frameworks that were installed
 	detectedFrameworks, frameworkNames, err := registry.DetectAll()

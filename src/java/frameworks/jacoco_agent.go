@@ -2,6 +2,7 @@ package frameworks
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/cloudfoundry/libbuildpack"
@@ -74,6 +75,44 @@ func (j *JacocoAgentFramework) Supply() error {
 	return nil
 }
 
+// findJacocoAgent locates the jacocoagent.jar file in the installation directory
+func (j *JacocoAgentFramework) findJacocoAgent(installDir string) (string, error) {
+	// Check common locations first
+	commonPaths := []string{
+		filepath.Join(installDir, "jacocoagent.jar"),
+		filepath.Join(installDir, "lib", "jacocoagent.jar"),
+	}
+
+	for _, path := range commonPaths {
+		if path == "" {
+			continue
+		}
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	// Search recursively for nested directories
+	var foundPath string
+	filepath.Walk(installDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Continue walking on errors
+		}
+		if !info.IsDir() && info.Name() == "jacocoagent.jar" {
+			// Found the agent JAR
+			foundPath = path
+			return filepath.SkipAll
+		}
+		return nil
+	})
+
+	if foundPath != "" {
+		return foundPath, nil
+	}
+
+	return "", fmt.Errorf("jacocoagent.jar not found in %s", installDir)
+}
+
 // Finalize configures the JaCoCo agent for runtime
 func (j *JacocoAgentFramework) Finalize() error {
 	j.context.Log.BeginStep("Configuring JaCoCo Agent")
@@ -128,8 +167,13 @@ func (j *JacocoAgentFramework) Finalize() error {
 		properties["output"] = output
 	}
 
-	// Build javaagent string with properties
-	agentJar := filepath.Join(j.context.Stager.DepDir(), "jacoco_agent", "jacocoagent.jar")
+	// Find jacocoagent.jar (may be in lib/ subdirectory)
+	agentDir := filepath.Join(j.context.Stager.DepDir(), "jacoco_agent")
+	agentJar, err := j.findJacocoAgent(agentDir)
+	if err != nil {
+		return fmt.Errorf("failed to locate jacocoagent.jar: %w", err)
+	}
+	j.context.Log.Debug("Found JaCoCo agent at: %s", agentJar)
 	javaagentOpts := fmt.Sprintf("-javaagent:%s", agentJar)
 
 	// Append properties as key=value pairs
