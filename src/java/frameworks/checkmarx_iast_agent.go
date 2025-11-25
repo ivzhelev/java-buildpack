@@ -16,13 +16,11 @@
 package frameworks
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // CheckmarxIASTAgentFramework represents the Checkmarx IAST agent framework
@@ -38,8 +36,20 @@ func NewCheckmarxIASTAgentFramework(ctx *Context) *CheckmarxIASTAgentFramework {
 
 // Detect checks if Checkmarx IAST agent should be enabled
 func (c *CheckmarxIASTAgentFramework) Detect() (string, error) {
-	// Check for checkmarx-iast service binding
-	if c.hasServiceBinding() {
+	// Use standard service detection helpers
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
+		c.context.Log.Warning("Failed to parse VCAP_SERVICES: %s", err.Error())
+		return "", nil
+	}
+
+	// Check for Checkmarx service bindings using flexible patterns
+	if vcapServices.HasService("checkmarx-iast") ||
+		vcapServices.HasService("checkmarx") ||
+		vcapServices.HasTag("checkmarx-iast") ||
+		vcapServices.HasTag("checkmarx") ||
+		vcapServices.HasTag("iast") ||
+		vcapServices.HasServiceByNamePattern("checkmarx") {
 		c.context.Log.Debug("Checkmarx IAST agent framework detected via service binding")
 		return "checkmarx-iast-agent", nil
 	}
@@ -115,48 +125,6 @@ func (c *CheckmarxIASTAgentFramework) Finalize() error {
 	return nil
 }
 
-// hasServiceBinding checks if there's a checkmarx-iast service binding
-func (c *CheckmarxIASTAgentFramework) hasServiceBinding() bool {
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
-		return false
-	}
-
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
-		return false
-	}
-
-	// Check for checkmarx-iast service
-	serviceNames := []string{
-		"checkmarx-iast",
-		"checkmarx",
-	}
-
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok && len(serviceList) > 0 {
-			return true
-		}
-	}
-
-	// Check user-provided services with checkmarx tags
-	if userProvided, ok := services["user-provided"]; ok {
-		for _, service := range userProvided {
-			if tags, ok := service["tags"].([]interface{}); ok {
-				for _, tag := range tags {
-					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "checkmarx") {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return false
-}
-
 // CheckmarxCredentials holds Checkmarx IAST credentials
 type CheckmarxCredentials struct {
 	URL        string // Agent download URL
@@ -168,54 +136,45 @@ type CheckmarxCredentials struct {
 func (c *CheckmarxIASTAgentFramework) getCredentials() CheckmarxCredentials {
 	creds := CheckmarxCredentials{}
 
-	vcapServices := os.Getenv("VCAP_SERVICES")
-	if vcapServices == "" {
+	vcapServices, err := GetVCAPServices()
+	if err != nil {
 		return creds
 	}
 
-	var services map[string][]map[string]interface{}
-	if err := json.Unmarshal([]byte(vcapServices), &services); err != nil {
+	// Find Checkmarx service using standard helpers
+	var service *VCAPService
+
+	// Try exact service labels first
+	if svc := vcapServices.GetService("checkmarx-iast"); svc != nil {
+		service = svc
+	} else if svc := vcapServices.GetService("checkmarx"); svc != nil {
+		service = svc
+	} else {
+		// Try user-provided services with checkmarx in the name
+		service = vcapServices.GetServiceByNamePattern("checkmarx")
+	}
+
+	if service == nil {
 		return creds
 	}
 
-	// Look for checkmarx-iast service
-	serviceNames := []string{
-		"checkmarx-iast",
-		"checkmarx",
-		"user-provided",
+	// Extract credentials with flexible key names
+	if url, ok := service.Credentials["url"].(string); ok {
+		creds.URL = url
+	} else if url, ok := service.Credentials["agent_url"].(string); ok {
+		creds.URL = url
 	}
 
-	for _, serviceName := range serviceNames {
-		if serviceList, ok := services[serviceName]; ok {
-			for _, service := range serviceList {
-				if credentials, ok := service["credentials"].(map[string]interface{}); ok {
-					// Get agent download URL
-					if url, ok := credentials["url"].(string); ok {
-						creds.URL = url
-					} else if url, ok := credentials["agent_url"].(string); ok {
-						creds.URL = url
-					}
+	if managerURL, ok := service.Credentials["manager_url"].(string); ok {
+		creds.ManagerURL = managerURL
+	} else if managerURL, ok := service.Credentials["managerUrl"].(string); ok {
+		creds.ManagerURL = managerURL
+	}
 
-					// Get manager URL
-					if managerURL, ok := credentials["manager_url"].(string); ok {
-						creds.ManagerURL = managerURL
-					} else if managerURL, ok := credentials["managerUrl"].(string); ok {
-						creds.ManagerURL = managerURL
-					}
-
-					// Get API key
-					if apiKey, ok := credentials["api_key"].(string); ok {
-						creds.APIKey = apiKey
-					} else if apiKey, ok := credentials["apiKey"].(string); ok {
-						creds.APIKey = apiKey
-					}
-
-					if creds.URL != "" {
-						return creds
-					}
-				}
-			}
-		}
+	if apiKey, ok := service.Credentials["api_key"].(string); ok {
+		creds.APIKey = apiKey
+	} else if apiKey, ok := service.Credentials["apiKey"].(string); ok {
+		creds.APIKey = apiKey
 	}
 
 	return creds

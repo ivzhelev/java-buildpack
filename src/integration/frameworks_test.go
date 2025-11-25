@@ -427,6 +427,29 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 				})
 			})
 
+			context("with Checkmarx IAST service binding", func() {
+				it("detects Checkmarx IAST service binding", func() {
+					deployment, logs, err := platform.Deploy.
+						WithServices(map[string]switchblade.Service{
+							"checkmarx-iast": {
+								"url":         "https://github.com/cloudfoundry/java-test-applications/raw/main/java-main-application/java-main-application.jar",
+								"manager_url": "https://checkmarx.example.com",
+								"api_key":     "test-api-key-12345",
+							},
+						}).
+						WithEnv(map[string]string{
+							"BP_JAVA_VERSION": "11",
+						}).
+						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+					Expect(err).NotTo(HaveOccurred(), logs.String)
+
+					// Verify Checkmarx IAST framework was detected (even if download succeeds)
+					// Note: Using a real downloadable URL for testing
+					Expect(logs.String()).To(ContainSubstring("Checkmarx IAST"))
+					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				})
+			})
+
 			context("without APM service bindings", func() {
 				it("does not install any APM agents", func() {
 					deployment, logs, err := platform.Deploy.
