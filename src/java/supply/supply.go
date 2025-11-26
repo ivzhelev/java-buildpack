@@ -103,6 +103,9 @@ func (s *Supplier) installJRE() error {
 	registry.Register(jres.NewZuluJRE(ctx))
 	registry.Register(jres.NewSapMachineJRE(ctx))
 	registry.Register(jres.NewGraalVMJRE(ctx))
+	registry.Register(jres.NewOracleJRE(ctx))
+	registry.Register(jres.NewIBMJRE(ctx))
+	registry.Register(jres.NewZingJRE(ctx))
 
 	// Detect which JRE to use
 	jre, jreName, err := registry.Detect()
