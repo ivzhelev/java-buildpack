@@ -662,7 +662,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":        "17",
 							"JBP_CONFIG_JAVA_CF_ENV": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "framework_java_cf_boot_3"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Java CF Env should be detected for Spring Boot 3.x apps
@@ -868,7 +868,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":                 "11",
 							"JBP_CONFIG_ASPECTJ_WEAVER_AGENT": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "framework_aspectj_weaver_meta_inf"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// AspectJ Weaver should be detected when enabled
