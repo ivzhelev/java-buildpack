@@ -220,7 +220,6 @@ dependencies:
   sha256: 0ac516cc1eadffb4cd3cfc9736a33d58ea6a396bf85729036c973482f7c063d9
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Version 11
 - name: openjdk
@@ -229,7 +228,6 @@ dependencies:
   sha256: 84cd7101f39172a4db085fb52940595bb14dad6bc3afb5bf82ee497eceaf86d3
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Version 17
 - name: openjdk
@@ -238,7 +236,6 @@ dependencies:
   sha256: 4086cc7cb2d9e7810141f255063caad10a8a018db5e6b47fa5394c506ab65bff
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Version 21
 - name: openjdk
@@ -266,7 +263,6 @@ dependencies:
   sha256: 7ff2e01766fe9b1f55cd441a0b14f3889f479b5d963bfbf5df9d1b7d82ac5c87
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Version 11
 - name: zulu
@@ -275,7 +271,6 @@ dependencies:
   sha256: 2696d23e20a7e6cc22d36a27c3d917b6b390d0e6ac1819e791d99a1fc159317c
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Version 17
 - name: zulu
@@ -284,7 +279,6 @@ dependencies:
   sha256: 2d74f026d0d184075ad99de343c6a24bd702eb25d87ce6de5e3ab8df1cd3ef25
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # SAP Machine JRE versions
 # Repository: https://github.com/SAP/SapMachine/releases
@@ -295,7 +289,6 @@ dependencies:
   sha256: 10f3eb5b93c2c26f7c69a3690d5877b401b5ab24a6b1798fac5518beb1f1f839
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Version 17
 - name: sapmachine
@@ -304,7 +297,6 @@ dependencies:
   sha256: b5f16befcb6415cfcf3bdb57b361c8eeca8176d494cd1e6c067cd56acec1afe6
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # GraalVM JRE versions
 # Note: GraalVM requires user-provided repository configuration via JBP_CONFIG_GRAAL_VM_JRE
@@ -318,7 +310,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_GRAALVM_17
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 - name: graalvm
   version: 21.0.5
@@ -326,7 +317,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_GRAALVM_21
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Oracle JRE versions
 # Note: Oracle JRE requires user-provided repository configuration via JBP_CONFIG_ORACLE_JRE
@@ -340,7 +330,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_ORACLE_8
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 - name: oracle
   version: 11.0.25
@@ -348,7 +337,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_ORACLE_11
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 - name: oracle
   version: 17.0.13
@@ -356,7 +344,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_ORACLE_17
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # IBM JRE versions
 # DEPRECATED: IBM JRE has been replaced by IBM Semeru Runtime (https://developer.ibm.com/languages/java/semeru-runtimes/)
@@ -371,7 +358,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_IBM_8
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Zing JRE versions
 # Note: Zing JRE requires user-provided repository configuration via JBP_CONFIG_ZING_JRE
@@ -385,7 +371,6 @@ dependencies:
   sha256: PLACEHOLDER_SHA256_ZING_17
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Tomcat versions
 - name: tomcat
@@ -394,7 +379,6 @@ dependencies:
   sha256: 1d9a1104c2e235a5baff6e9ca8e28be3d864803fafc478f5c13c2ae6a5ed3d6f
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 - name: tomcat
   version: 10.1.33
@@ -402,7 +386,6 @@ dependencies:
   sha256: 3b2b21d61cd587b5f838da1843763feaa5e864fe05975a101dade0922de50895
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Groovy versions
 - name: groovy
@@ -411,7 +394,6 @@ dependencies:
   sha256: 7089dd7a1e84adc814d616f5ec2f7d7dac2044a0a0457f3341b3b92d30204229
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Spring Boot CLI versions
 - name: spring-boot-cli
@@ -420,7 +402,6 @@ dependencies:
   sha256: e35d1ee2c6ddc5c97a3eb305297d0e8aad328c3d87ab3c62b7cfb42de04d8720
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # JVM Kill Agent
 - name: jvmkill
@@ -429,24 +410,21 @@ dependencies:
   sha256: a3092627b082cb3cdbbe4b255d35687126aa604e6b613dcda33be9f7e1277162
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Memory Calculator
-- name: memory-calculator
-  version: 4.0.0
-  uri: https://java-buildpack.cloudfoundry.org/memory-calculator/bionic/x86_64/memory-calculator-4.0.0.tgz
-  sha256: 90d40eab6959a7b4059c6409c4505040e8a04f75a481f7282e53430df3edda3e
-  cf_stacks:
-  - cflinuxfs4
-  - cflinuxfs3
-
 - name: memory-calculator
   version: 4.1.0
   uri: https://github.com/cloudfoundry/java-buildpack-memory-calculator/releases/download/v4.1.0/memory-calculator-4.1.0.tgz
   sha256: 0ba6fa26b32e4b906ab460a7cdb70ebded95ea353fdda93bd7f5792300b9cd43
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
+
+- name: memory-calculator
+  version: 4.2.0
+  uri: https://java-buildpack.cloudfoundry.org/memory-calculator/jammy/x86_64/memory-calculator-4.2.0.tgz
+  sha256: a0689a655312fc4d1b71673d3edbfde61c4db48801e9d35fe3f31ecd49783d47
+  cf_stacks:
+  - cflinuxfs4
 
 # NOTE: Tomcat support JARs are currently unavailable from the CF buildpack repository
 # These will be added when new versions are published or alternative sources are found
@@ -475,7 +453,6 @@ dependencies:
   sha256: 7be360e4ce20eadad06cc30d2917c258a97b9710725a35774537e88fada8f113
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # NOTE: AppDynamics and Dynatrace require authentication or environment-specific URLs
 # These should be configured at runtime via buildpack.yml or service bindings
@@ -502,7 +479,6 @@ dependencies:
   sha256: e703547f69695d2b3dbfcfa7e920bfa6e86decebe015e7047c313736d2268928
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Elastic APM Agent
 - name: elastic-apm-agent
@@ -511,7 +487,6 @@ dependencies:
   sha256: ef6c8f75bd6181e717cdd172864441580708c7ee8543175621a3f404f4ba6429
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Azure Application Insights Agent
 - name: azure-application-insights
@@ -520,7 +495,6 @@ dependencies:
   sha256: e81ef99fd30444f6f1da70cd31db5e47f8e6906acbbc9199cac3b390dc6cfedf
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # SkyWalking Agent
 - name: skywalking-agent
@@ -529,7 +503,6 @@ dependencies:
   sha256: 251729e400abe7eb75d83de543e355e6f5e62ecb361be67431aaece9107c15cc
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Splunk OpenTelemetry Java Agent
 - name: splunk-otel-javaagent
@@ -538,7 +511,6 @@ dependencies:
   sha256: 0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Google Stackdriver Profiler
 - name: google-stackdriver-profiler
@@ -547,7 +519,6 @@ dependencies:
   sha256: 509b87c406b59424cb101d561567cadad97d3fd1c235224bca2a114d4a7bde0c
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # OpenTelemetry Javaagent
 - name: open-telemetry-javaagent
@@ -556,7 +527,6 @@ dependencies:
   sha256: 53b34ae7a9ac9497ac16607fc6c74f10bb3cf818dc241789a067c47b0bdc2ea0
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Spring Auto-reconfiguration
 - name: auto-reconfiguration
@@ -565,7 +535,6 @@ dependencies:
   sha256: 78dc1c2b3d3b6fb4ab94f38004ad1fbeb81992d942bd564127ca5d3da3cd2010
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Java CF Env
 - name: java-cfenv
@@ -574,7 +543,6 @@ dependencies:
   sha256: 6a761fe530783c0ec9e6d1713ef54f6504803bf1ad02856d3ee7b46211f905c5
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # Client Certificate Mapper (mTLS support)
 - name: client-certificate-mapper
@@ -583,7 +551,6 @@ dependencies:
   sha256: f7f53a460bcd4b0cead4da99dcb251bd283bd5fa4e421eeb52b86986d266cde9
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # PostgreSQL JDBC Driver
 - name: postgresql-jdbc
@@ -592,7 +559,6 @@ dependencies:
   sha256: 188976721ead8e8627eb6d8389d500dccc0c9bebd885268a3047180274a6031e
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # MariaDB JDBC Driver
 - name: mariadb-jdbc
@@ -601,7 +567,6 @@ dependencies:
   sha256: 50a50c4a3c13c30dfbd40587f7ad9a496197d285ede0948641d9eee68fdf2106
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # NOTE: This manifest.yml includes core dependencies for:
 # ✅ OpenJDK JRE versions: 8, 11, 17, 21, 23
@@ -641,7 +606,6 @@ dependencies:
   sha256: 35cf2a2b8937659ecbc8d0d3902dfa7f55b7ed2250e82424036a3e1d12462cd7
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # Contrast Security Agent
@@ -653,7 +617,6 @@ dependencies:
   sha256: 4e08e9a3d503e6e1b17a26db8d8451ee6365d3f1b11258873c34ec7e6d09a1df
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # JRebel Agent
@@ -665,7 +628,6 @@ dependencies:
   sha256: f5f8dc137b349350745b2dde316e2e629d924f784b7bec1ef8144ee8a9d6f1eb
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # Takipi Agent (OverOps)
@@ -677,7 +639,6 @@ dependencies:
   sha256: 8fa660fb0169cbf1f465d7f6aa3cba8ee804172864a99a2292c2c6b7f44da1d8
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # YourKit Java Profiler
@@ -689,7 +650,6 @@ dependencies:
   sha256: f5b852cb419da2ca5ddfb389a112b6ca7813ed8435627346da34b83dfeb32260
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # JProfiler Profiler
@@ -701,7 +661,6 @@ dependencies:
   sha256: 4bb7b65aeac327478fce9320d182bde0c9f47877dbf3f8cd99fd2462db366343
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # Sealights Agent
@@ -713,7 +672,6 @@ dependencies:
   sha256: 0ed3e0bc83a45d5ae082fb1a2f6df47544c8c51d8dfa249b1fdb4b15c5a0ddea
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # Container Security Provider
@@ -726,7 +684,6 @@ dependencies:
   sha256: fef33f4ffec1451b97253887026ec65ad99df0d2e8f8412e50e2afe5a4f6c62d
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
 
 # ========================================
 # Luna Security Provider
@@ -740,4 +697,3 @@ dependencies:
   sha256: e024103719ffa99a011607942ecddfd91c5681113e6cea27f5514bc9fa172875
   cf_stacks:
   - cflinuxfs4
-  - cflinuxfs3
