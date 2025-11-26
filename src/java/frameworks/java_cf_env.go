@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry/libbuildpack"
+	"gopkg.in/yaml.v2"
 )
 
 // JavaCfEnvFramework implements java-cfenv support for Cloud Foundry
@@ -96,11 +97,42 @@ func (j *JavaCfEnvFramework) Finalize() error {
 // isEnabled checks if java-cfenv is enabled in configuration
 func (j *JavaCfEnvFramework) isEnabled() bool {
 	// Check JBP_CONFIG_JAVA_CF_ENV environment variable
-	config := os.Getenv("JBP_CONFIG_JAVA_CF_ENV")
-	if config != "" {
-		// If explicitly configured, respect that setting
-		// For now, we'll assume if it's set, it's to disable
-		return false
+	configOverride := os.Getenv("JBP_CONFIG_JAVA_CF_ENV")
+	if configOverride != "" {
+		// Parse YAML configuration
+		var yamlContent interface{}
+		if err := yaml.Unmarshal([]byte(configOverride), &yamlContent); err != nil {
+			j.context.Log.Warning("Failed to parse JBP_CONFIG_JAVA_CF_ENV, treating as enabled: %s", err)
+			return true
+		}
+
+		// Handle both direct map and string-encoded YAML
+		var configData []byte
+		switch v := yamlContent.(type) {
+		case string:
+			configData = []byte(v)
+		case map[interface{}]interface{}:
+			var err error
+			configData, err = yaml.Marshal(v)
+			if err != nil {
+				j.context.Log.Warning("Failed to marshal config, treating as enabled: %s", err)
+				return true
+			}
+		default:
+			j.context.Log.Warning("Unexpected YAML type, treating as enabled: %T", v)
+			return true
+		}
+
+		// Parse into config structure
+		var config struct {
+			Enabled bool `yaml:"enabled"`
+		}
+		if err := yaml.Unmarshal(configData, &config); err != nil {
+			j.context.Log.Warning("Failed to parse config structure, treating as enabled: %s", err)
+			return true
+		}
+
+		return config.Enabled
 	}
 
 	// Default to enabled
