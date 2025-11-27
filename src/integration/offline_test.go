@@ -13,8 +13,9 @@ import (
 func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
 	return func(t *testing.T, context spec.G, it spec.S) {
 		var (
-			Expect = NewWithT(t).Expect
-			name   string
+			Expect     = NewWithT(t).Expect
+			Eventually = NewWithT(t).Eventually
+			name       string
 		)
 
 		it.Before(func() {
@@ -44,7 +45,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					ContainSubstring("Downloading"),
 					ContainSubstring("cached"),
 				))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -60,7 +61,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 
 				// Should not attempt external downloads
 				Expect(logs.String()).NotTo(ContainSubstring("ERROR"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -75,7 +76,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -89,7 +90,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 	}

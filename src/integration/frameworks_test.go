@@ -13,8 +13,9 @@ import (
 func testFrameworks(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
 	return func(t *testing.T, context spec.G, it spec.S) {
 		var (
-			Expect = NewWithT(t).Expect
-			name   string
+			Expect     = NewWithT(t).Expect
+			Eventually = NewWithT(t).Eventually
+			name       string
 		)
 
 		it.Before(func() {
@@ -46,7 +47,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Verify New Relic agent was detected and installed
 					Expect(logs.String()).To(ContainSubstring("New Relic Agent"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures New Relic with license key from service binding", func() {
@@ -63,7 +64,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("New Relic Agent"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -87,7 +88,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Verify AppDynamics agent was detected and installed
 					Expect(logs.String()).To(ContainSubstring("AppDynamics Agent"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures AppDynamics with controller info from service binding", func() {
@@ -108,7 +109,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("AppDynamics Agent"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -130,7 +131,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Verify Dynatrace agent was detected and installed
 					Expect(logs.String()).To(ContainSubstring("Dynatrace"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures Dynatrace with environment ID from service binding", func() {
@@ -149,7 +150,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Dynatrace"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -177,7 +178,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						ContainSubstring("New Relic Agent"),
 						ContainSubstring("AppDynamics Agent"),
 					))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -196,7 +197,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Azure Application Insights"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures Azure Application Insights with instrumentation key", func() {
@@ -213,7 +214,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Azure Application Insights"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -232,7 +233,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("SkyWalking"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures SkyWalking with OAP server address", func() {
@@ -250,7 +251,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("SkyWalking"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -270,7 +271,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Splunk OTEL"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures Splunk OTEL with realm and access token", func() {
@@ -289,7 +290,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Splunk OTEL"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -308,7 +309,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Google Stackdriver Profiler"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -327,7 +328,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Datadog"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures Datadog with API key from service binding", func() {
@@ -345,7 +346,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Datadog"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -365,7 +366,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Elastic APM"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures Elastic APM with server URL and token", func() {
@@ -384,7 +385,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Elastic APM"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -404,7 +405,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("OpenTelemetry"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("configures OpenTelemetry with OTLP endpoint from service binding", func() {
@@ -423,7 +424,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("OpenTelemetry"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -446,7 +447,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					// Verify Checkmarx IAST framework was detected (even if download succeeds)
 					// Note: Using a real downloadable URL for testing
 					Expect(logs.String()).To(ContainSubstring("Checkmarx IAST"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -462,7 +463,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					// No APM agents should be mentioned
 					Expect(logs.String()).NotTo(ContainSubstring("New Relic Agent"))
 					Expect(logs.String()).NotTo(ContainSubstring("AppDynamics Agent"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -488,7 +489,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("PostgreSQL JDBC"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -512,7 +513,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("MariaDB JDBC"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -530,7 +531,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Client Certificate Mapper should be detected and installed
 					Expect(logs.String()).To(ContainSubstring("Client Certificate Mapper"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("skips Client Certificate Mapper when disabled", func() {
@@ -544,7 +545,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Should not install when explicitly disabled
 					Expect(logs.String()).NotTo(ContainSubstring("Client Certificate Mapper"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -562,7 +563,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Debug"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -578,7 +579,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("JMX"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -600,7 +601,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("JaCoCo"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -625,7 +626,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Spring Auto-reconfiguration should be detected for Spring apps with services
 					Expect(logs.String()).To(ContainSubstring("Spring Auto-reconfiguration"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("skips Spring Auto-reconfiguration when disabled", func() {
@@ -644,7 +645,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Should not install when explicitly disabled
 					Expect(logs.String()).NotTo(ContainSubstring("Spring Auto-reconfiguration"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -667,7 +668,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Java CF Env should be detected for Spring Boot 3.x apps
 					Expect(logs.String()).To(ContainSubstring("Java CF Env"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -685,7 +686,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Java Opts framework should detect JAVA_OPTS environment variable
 					Expect(logs.String()).To(ContainSubstring("Java Opts"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 
 				it("applies custom JAVA_OPTS from configuration file", func() {
@@ -699,7 +700,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Java Opts framework should detect configuration
 					Expect(logs.String()).To(ContainSubstring("Java Opts"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -717,7 +718,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// JRebel agent should be detected when enabled
 					Expect(logs.String()).To(ContainSubstring("JRebel"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -733,7 +734,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// YourKit profiler should be detected when enabled
 					Expect(logs.String()).To(ContainSubstring("YourKit"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -749,7 +750,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// JProfiler profiler should be detected when enabled
 					Expect(logs.String()).To(ContainSubstring("JProfiler"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -773,7 +774,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Contrast Security"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -795,7 +796,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Sealights"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -815,7 +816,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Takipi"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -835,7 +836,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Introscope"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -855,7 +856,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Riverbed AppInternals"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})
@@ -873,7 +874,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// AspectJ Weaver should be detected when enabled
 					Expect(logs.String()).To(ContainSubstring("AspectJ"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -893,7 +894,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Stackdriver Debugger"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 
@@ -907,7 +908,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Container Security Provider"))
-					Expect(deployment.ExternalURL).NotTo(BeEmpty())
+					Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 				})
 			})
 		})

@@ -13,8 +13,9 @@ import (
 func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
 	return func(t *testing.T, context spec.G, it spec.S) {
 		var (
-			Expect = NewWithT(t).Expect
-			name   string
+			Expect     = NewWithT(t).Expect
+			Eventually = NewWithT(t).Eventually
+			name       string
 		)
 
 		it.Before(func() {
@@ -39,7 +40,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -54,7 +55,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 
 				// Spring auto-reconfiguration should be detected
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -71,7 +72,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 					ContainSubstring("Tomcat"),
 					ContainSubstring("JRE"),
 				))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -85,7 +86,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 	}
