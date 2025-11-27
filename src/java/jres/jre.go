@@ -191,17 +191,12 @@ func SetupJavaHome(ctx *Context, javaHome string) error {
 	}
 
 	// Write environment variables to profile.d
-	envScript := filepath.Join(ctx.Stager.DepDir(), "profile.d", "java.sh")
-	if err := os.MkdirAll(filepath.Dir(envScript), 0755); err != nil {
-		return fmt.Errorf("failed to create profile.d directory: %w", err)
-	}
-
 	envContent := fmt.Sprintf(`export JAVA_HOME=%s
 export JRE_HOME=%s
 export PATH=$JAVA_HOME/bin:$PATH
 `, actualJavaHome, actualJavaHome)
 
-	if err := os.WriteFile(envScript, []byte(envContent), 0755); err != nil {
+	if err := ctx.Stager.WriteProfileD("java.sh", envContent); err != nil {
 		return fmt.Errorf("failed to write java.sh: %w", err)
 	}
 

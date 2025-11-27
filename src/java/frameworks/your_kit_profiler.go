@@ -153,16 +153,11 @@ func (f *YourKitProfilerFramework) Finalize() error {
 		homeDir, homeDir, port, sessionName)
 	javaAgent := fmt.Sprintf("-agentpath:%s=%s", agentPath, agentOptions)
 
-	// Write to .profile.d script
-	profilePath := filepath.Join(f.ctx.Stager.DepDir(), ".profile.d", "yourkit.sh")
-	if err := os.MkdirAll(filepath.Dir(profilePath), 0755); err != nil {
-		return fmt.Errorf("failed to create .profile.d directory: %w", err)
-	}
-
+	// Write to profile.d script using libbuildpack's standard method
 	profileContent := fmt.Sprintf(`export JAVA_OPTS="$JAVA_OPTS %s"
 `, javaAgent)
 
-	if err := os.WriteFile(profilePath, []byte(profileContent), 0644); err != nil {
+	if err := f.ctx.Stager.WriteProfileD("yourkit.sh", profileContent); err != nil {
 		return fmt.Errorf("failed to write profile script: %w", err)
 	}
 

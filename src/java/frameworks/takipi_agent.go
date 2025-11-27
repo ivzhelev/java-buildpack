@@ -132,10 +132,6 @@ func (f *TakipiAgentFramework) Finalize() error {
 
 	// Set environment variables
 	libPath := filepath.Join(installDir, "lib")
-	profilePath := filepath.Join(f.ctx.Stager.DepDir(), ".profile.d", "takipi.sh")
-	if err := os.MkdirAll(filepath.Dir(profilePath), 0755); err != nil {
-		return fmt.Errorf("failed to create .profile.d directory: %w", err)
-	}
 
 	profileContent := fmt.Sprintf(`export JAVA_OPTS="$JAVA_OPTS %s"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:%s"
@@ -156,7 +152,7 @@ export TAKIPI_MACHINE_NAME="node-$CF_INSTANCE_INDEX"
 		}
 	}
 
-	if err := os.WriteFile(profilePath, []byte(profileContent), 0644); err != nil {
+	if err := f.ctx.Stager.WriteProfileD("takipi.sh", profileContent); err != nil {
 		return fmt.Errorf("failed to write profile script: %w", err)
 	}
 

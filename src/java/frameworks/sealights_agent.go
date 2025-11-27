@@ -147,16 +147,11 @@ func (f *SealightsAgentFramework) Finalize() error {
 	// Build javaagent argument
 	javaAgent := fmt.Sprintf("-javaagent:%s", agentPath)
 
-	// Write to .profile.d script
-	profilePath := filepath.Join(f.ctx.Stager.DepDir(), ".profile.d", "sealights.sh")
-	if err := os.MkdirAll(filepath.Dir(profilePath), 0755); err != nil {
-		return fmt.Errorf("failed to create .profile.d directory: %w", err)
-	}
-
+	// Write to profile.d script using libbuildpack's standard method
 	profileContent := fmt.Sprintf(`export JAVA_OPTS="$JAVA_OPTS %s %s"
 `, javaAgent, systemProps)
 
-	if err := os.WriteFile(profilePath, []byte(profileContent), 0644); err != nil {
+	if err := f.ctx.Stager.WriteProfileD("sealights.sh", profileContent); err != nil {
 		return fmt.Errorf("failed to write profile script: %w", err)
 	}
 
