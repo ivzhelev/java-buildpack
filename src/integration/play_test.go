@@ -13,8 +13,9 @@ import (
 func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
 	return func(t *testing.T, context spec.G, it spec.S) {
 		var (
-			Expect = NewWithT(t).Expect
-			name   string
+			Expect     = NewWithT(t).Expect
+			Eventually = NewWithT(t).Eventually
+			name       string
 		)
 
 		it.Before(func() {
@@ -39,7 +40,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -53,7 +54,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 
 			it("successfully deploys a staged Play 2.1 application", func() {
@@ -65,7 +66,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -79,7 +80,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 
 			it("successfully deploys a staged Play 2.2 application", func() {
@@ -91,7 +92,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 
 			it("handles Play 2.2 application without bat file", func() {
@@ -103,7 +104,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -134,7 +135,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 	}

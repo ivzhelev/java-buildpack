@@ -13,8 +13,9 @@ import (
 func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
 	return func(t *testing.T, context spec.G, it spec.S) {
 		var (
-			Expect = NewWithT(t).Expect
-			name   string
+			Expect     = NewWithT(t).Expect
+			Eventually = NewWithT(t).Eventually
+			name       string
 		)
 
 		it.Before(func() {
@@ -39,7 +40,7 @@ func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 
 			it("successfully deploys a staged Ratpack application", func() {
@@ -51,7 +52,7 @@ func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -66,7 +67,7 @@ func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 	}

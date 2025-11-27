@@ -121,7 +121,7 @@ function specs::run() {
   nodes=1
 
   if [[ "${parallel}" == "true" ]]; then
-    nodes=2
+    nodes=3
     serial_flag=""
   fi
 

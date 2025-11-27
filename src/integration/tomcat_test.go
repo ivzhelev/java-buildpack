@@ -13,8 +13,9 @@ import (
 func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T, spec.G, spec.S) {
 	return func(t *testing.T, context spec.G, it spec.S) {
 		var (
-			Expect = NewWithT(t).Expect
-			name   string
+			Expect     = NewWithT(t).Expect
+			Eventually = NewWithT(t).Eventually
+			name       string
 		)
 
 		it.Before(func() {
@@ -38,7 +39,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -52,7 +53,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 
 			it("deploys with Java 11", func() {
@@ -64,7 +65,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 
 			it("deploys with Java 17", func() {
@@ -76,7 +77,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 
@@ -92,7 +93,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("memory"))
-				Expect(deployment.ExternalURL).NotTo(BeEmpty())
+				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
 			})
 		})
 	}
