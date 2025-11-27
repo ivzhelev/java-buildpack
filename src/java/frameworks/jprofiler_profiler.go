@@ -154,16 +154,11 @@ func (f *JProfilerProfilerFramework) Finalize() error {
 	}
 	javaAgent := fmt.Sprintf("-agentpath:%s=%s", agentPath, agentOptions)
 
-	// Write to .profile.d script
-	profilePath := filepath.Join(f.ctx.Stager.DepDir(), ".profile.d", "jprofiler.sh")
-	if err := os.MkdirAll(filepath.Dir(profilePath), 0755); err != nil {
-		return fmt.Errorf("failed to create .profile.d directory: %w", err)
-	}
-
+	// Write to profile.d script using libbuildpack's standard method
 	profileContent := fmt.Sprintf(`export JAVA_OPTS="$JAVA_OPTS %s"
 `, javaAgent)
 
-	if err := os.WriteFile(profilePath, []byte(profileContent), 0644); err != nil {
+	if err := f.ctx.Stager.WriteProfileD("jprofiler.sh", profileContent); err != nil {
 		return fmt.Errorf("failed to write profile script: %w", err)
 	}
 
