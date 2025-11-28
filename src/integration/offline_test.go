@@ -7,6 +7,7 @@ import (
 	"github.com/cloudfoundry/switchblade"
 	"github.com/sclevine/spec"
 
+	"github.com/cloudfoundry/switchblade/matchers"
 	. "github.com/onsi/gomega"
 )
 
@@ -45,7 +46,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					ContainSubstring("Downloading"),
 					ContainSubstring("cached"),
 				))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
@@ -61,7 +62,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 
 				// Should not attempt external downloads
 				Expect(logs.String()).NotTo(ContainSubstring("ERROR"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
@@ -76,7 +77,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
@@ -90,7 +91,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 	}

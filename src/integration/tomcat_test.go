@@ -1,10 +1,13 @@
 package integration_test
 
 import (
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/cloudfoundry/switchblade"
+	"github.com/cloudfoundry/switchblade/matchers"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -34,12 +37,35 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 			it("successfully deploys and runs", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
-						"BP_JAVA_VERSION": "8",
+						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+
+				// Print staging logs for debugging
+				t.Logf("\n=== STAGING LOGS ===\n%s\n=== END STAGING LOGS ===\n", logs.String())
+
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				// Debug: Print deployment information
+				t.Logf("Deployment Name: %s", deployment.Name)
+				t.Logf("External URL: %s", deployment.ExternalURL)
+				t.Logf("Internal URL: %s", deployment.InternalURL)
+
+				// Get runtime logs from Docker container
+				t.Logf("\n=== Fetching runtime logs from container ===")
+				// Sleep briefly to allow container to start
+				time.Sleep(2 * time.Second)
+
+				// Use docker CLI to get logs
+				cmd := exec.Command("docker", "logs", deployment.Name)
+				runtimeLogs, err := cmd.CombinedOutput()
+				if err != nil {
+					t.Logf("Failed to get docker logs: %v", err)
+				} else {
+					t.Logf("\n=== RUNTIME LOGS ===\n%s\n=== END RUNTIME LOGS ===\n", string(runtimeLogs))
+				}
+
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
@@ -49,11 +75,11 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "8",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 
 			it("deploys with Java 11", func() {
@@ -61,11 +87,11 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 
 			it("deploys with Java 17", func() {
@@ -73,11 +99,11 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
@@ -89,11 +115,12 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 						"JAVA_OPTS":               "-Xmx256m",
 						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 11.+}}",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("memory"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 	}

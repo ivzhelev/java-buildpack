@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/cloudfoundry/switchblade"
+	"github.com/cloudfoundry/switchblade/matchers"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -40,7 +41,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 
@@ -55,7 +56,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 
 				// Spring auto-reconfiguration should be detected
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 
@@ -72,7 +73,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 					ContainSubstring("Tomcat"),
 					ContainSubstring("JRE"),
 				))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 
@@ -86,7 +87,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 					Execute(name, filepath.Join(fixtures, "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 	}

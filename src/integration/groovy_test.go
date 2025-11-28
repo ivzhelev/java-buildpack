@@ -7,6 +7,7 @@ import (
 	"github.com/cloudfoundry/switchblade"
 	"github.com/sclevine/spec"
 
+	"github.com/cloudfoundry/switchblade/matchers"
 	. "github.com/onsi/gomega"
 )
 
@@ -40,7 +41,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("Hello World")))
 			})
 
 			it("successfully deploys a Groovy script with main method", func() {
@@ -52,7 +53,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("Class Path")))
 			})
 
 			it("successfully deploys a Groovy script with shebang", func() {
@@ -64,7 +65,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 
@@ -78,7 +79,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 
@@ -92,7 +93,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 	}
