@@ -7,6 +7,7 @@ import (
 	"github.com/cloudfoundry/switchblade"
 	"github.com/sclevine/spec"
 
+	"github.com/cloudfoundry/switchblade/matchers"
 	. "github.com/onsi/gomega"
 )
 
@@ -40,7 +41,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 
 			it("successfully deploys with beans configuration", func() {
@@ -52,7 +53,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 
 			it("successfully deploys non-POGO Groovy scripts", func() {
@@ -64,7 +65,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 
 			it("successfully deploys with main method", func() {
@@ -76,7 +77,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 
 			it("successfully deploys Groovy with WEB-INF", func() {
@@ -88,7 +89,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 
@@ -103,7 +104,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment.ExternalURL).Should(Not(BeEmpty()))
+				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})
 		})
 	}

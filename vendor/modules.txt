@@ -20,6 +20,7 @@ github.com/cloudfoundry/libbuildpack
 github.com/cloudfoundry/switchblade
 github.com/cloudfoundry/switchblade/internal/cloudfoundry
 github.com/cloudfoundry/switchblade/internal/docker
+github.com/cloudfoundry/switchblade/matchers
 # github.com/docker/distribution v2.8.1+incompatible
 ## explicit
 github.com/docker/distribution/digestset
