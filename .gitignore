@@ -22,3 +22,4 @@ bin/release
 bin/supply
 *.md
 *.log
+scripts/integration-focus.sh
