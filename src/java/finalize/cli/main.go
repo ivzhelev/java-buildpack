@@ -62,6 +62,16 @@ func main() {
 		os.Exit(14)
 	}
 
+	if err := libbuildpack.RunAfterCompile(stager); err != nil {
+		logger.Error("After Compile: %s", err.Error())
+		os.Exit(13)
+	}
+
+	if err := stager.SetLaunchEnvironment(); err != nil {
+		logger.Error("Unable to setup launch environment: %s", err.Error())
+		os.Exit(16)
+	}
+
 	if err := stager.WriteConfigYml(nil); err != nil {
 		logger.Error("Error writing config.yml: %s", err.Error())
 		os.Exit(15)
