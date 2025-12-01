@@ -66,7 +66,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(Or(
@@ -84,7 +84,7 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 						"BP_JAVA_VERSION":       "11",
 						"JBP_CONFIG_JAVA_CFENV": "{enabled: true}",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))

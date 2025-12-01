@@ -71,7 +71,7 @@ func (j *JavaMainContainer) findMainClass(buildDir string) (string, string) {
 		if strings.HasSuffix(name, ".jar") {
 			// TODO: In full implementation, extract and read MANIFEST.MF
 			// For now, assume any JAR could be a main JAR
-			return "Main", name
+			return "Main", filepath.Join("$HOME", name)
 		}
 	}
 
