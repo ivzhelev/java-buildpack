@@ -32,6 +32,20 @@ var _ = Describe("Release", func() {
 		buildDir, err = os.MkdirTemp("", "release-build")
 		Expect(err).NotTo(HaveOccurred())
 
+		// Create tmp directory for release YAML (simulating finalize phase)
+		tmpDir := buildDir + "/tmp"
+		err = os.MkdirAll(tmpDir, 0755)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create release YAML file (simulating finalize phase output)
+		releaseYamlPath := tmpDir + "/java-buildpack-release-step.yml"
+		releaseYaml := `---
+default_process_types:
+  web: $HOME/.java-buildpack/start.sh
+`
+		err = os.WriteFile(releaseYamlPath, []byte(releaseYaml), 0644)
+		Expect(err).NotTo(HaveOccurred())
+
 		// Create logger with buffer to capture output
 		stdout = new(bytes.Buffer)
 		logger = libbuildpack.NewLogger(stdout)

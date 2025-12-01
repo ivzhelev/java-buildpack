@@ -74,9 +74,9 @@ func Run(f *Finalizer) error {
 		return err
 	}
 
-	// Generate startup script
-	if err := f.generateStartupScript(container); err != nil {
-		f.Log.Error("Failed to generate startup script: %s", err.Error())
+	// Write release YAML configuration
+	if err := f.writeReleaseYaml(container); err != nil {
+		f.Log.Error("Failed to write release YAML: %s", err.Error())
 		return err
 	}
 
@@ -224,18 +224,10 @@ func (f *Finalizer) finalizeFrameworks() error {
 	return nil
 }
 
-// generateStartupScript creates the main startup script that Cloud Foundry will execute
-func (f *Finalizer) generateStartupScript(container containers.Container) error {
-	f.Log.BeginStep("Generating startup script")
-
-	// Create .java-buildpack directory in HOME
-	// In Cloud Foundry, $HOME is the app directory at runtime
-	javaBuildpackDir := filepath.Join(f.Stager.BuildDir(), ".java-buildpack")
-	if err := os.MkdirAll(javaBuildpackDir, 0755); err != nil {
-		return fmt.Errorf("failed to create .java-buildpack directory: %w", err)
-	}
-
-	startScript := filepath.Join(javaBuildpackDir, "start.sh")
+// writeReleaseYaml writes the release configuration to a YAML file
+// This follows the pattern used by Ruby, Go, and Node.js buildpacks
+func (f *Finalizer) writeReleaseYaml(container containers.Container) error {
+	f.Log.BeginStep("Writing release configuration")
 
 	// Get the container's startup command
 	containerCommand, err := container.Release()
@@ -243,37 +235,24 @@ func (f *Finalizer) generateStartupScript(container containers.Container) error 
 		return fmt.Errorf("failed to get container command: %w", err)
 	}
 
-	// Build startup script content
-	scriptContent := fmt.Sprintf(`#!/bin/bash
-set -e
-
-# Source profile.d scripts (sets JAVA_HOME, etc.)
-for script in $HOME/.profile.d/*.sh; do
-  [ -r "$script" ] && source "$script"
-done
-
-# Source memory calculator script
-if [ -r $DEPS_DIR/0/bin/memory_calculator.sh ]; then
-  source $DEPS_DIR/0/bin/memory_calculator.sh
-fi
-
-# Source environment variables
-if [ -d $DEPS_DIR/0/env ]; then
-  for envfile in $DEPS_DIR/0/env/*; do
-    [ -r "$envfile" ] && export $(basename "$envfile")="$(cat "$envfile")"
-  done
-fi
-
-# Execute application
-cd $HOME
-exec %s
-`, containerCommand)
-
-	// Write startup script
-	if err := os.WriteFile(startScript, []byte(scriptContent), 0755); err != nil {
-		return fmt.Errorf("failed to write startup script: %w", err)
+	// Create tmp directory in build dir
+	tmpDir := filepath.Join(f.Stager.BuildDir(), "tmp")
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		return fmt.Errorf("failed to create tmp directory: %w", err)
 	}
 
-	f.Log.Info("Startup script generated: %s", startScript)
+	// Write YAML file with release information
+	releaseYamlPath := filepath.Join(tmpDir, "java-buildpack-release-step.yml")
+	yamlContent := fmt.Sprintf(`---
+default_process_types:
+  web: %s
+`, containerCommand)
+
+	if err := os.WriteFile(releaseYamlPath, []byte(yamlContent), 0644); err != nil {
+		return fmt.Errorf("failed to write release YAML: %w", err)
+	}
+
+	f.Log.Info("Release YAML written: %s", releaseYamlPath)
+	f.Log.Info("Web process command: %s", containerCommand)
 	return nil
 }
