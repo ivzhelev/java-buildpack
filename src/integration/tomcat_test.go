@@ -1,10 +1,8 @@
 package integration_test
 
 import (
-	"os/exec"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/cloudfoundry/switchblade"
 	"github.com/cloudfoundry/switchblade/matchers"
@@ -28,7 +26,11 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 		})
 
 		it.After(func() {
-			if name != "" {
+			if t.Failed() && name != "" {
+				t.Logf("❌ FAILED TEST - App/Container: %s", name)
+				t.Logf("   Platform: %s", settings.Platform)
+			}
+			if name != "" && (!settings.KeepFailedContainers || !t.Failed()) {
 				Expect(platform.Delete.Execute(name)).To(Succeed())
 			}
 		})
@@ -41,29 +43,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					}).
 					Execute(name, filepath.Join(fixtures, "container_tomcat"))
 
-				// Print staging logs for debugging
-				t.Logf("\n=== STAGING LOGS ===\n%s\n=== END STAGING LOGS ===\n", logs.String())
-
 				Expect(err).NotTo(HaveOccurred(), logs.String)
-
-				// Debug: Print deployment information
-				t.Logf("Deployment Name: %s", deployment.Name)
-				t.Logf("External URL: %s", deployment.ExternalURL)
-				t.Logf("Internal URL: %s", deployment.InternalURL)
-
-				// Get runtime logs from Docker container
-				t.Logf("\n=== Fetching runtime logs from container ===")
-				// Sleep briefly to allow container to start
-				time.Sleep(2 * time.Second)
-
-				// Use docker CLI to get logs
-				cmd := exec.Command("docker", "logs", deployment.Name)
-				runtimeLogs, err := cmd.CombinedOutput()
-				if err != nil {
-					t.Logf("Failed to get docker logs: %v", err)
-				} else {
-					t.Logf("\n=== RUNTIME LOGS ===\n%s\n=== END RUNTIME LOGS ===\n", string(runtimeLogs))
-				}
 
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})

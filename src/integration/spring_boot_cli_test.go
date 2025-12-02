@@ -26,7 +26,11 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 		})
 
 		it.After(func() {
-			if name != "" {
+			if t.Failed() && name != "" {
+				t.Logf("❌ FAILED TEST - App/Container: %s", name)
+				t.Logf("   Platform: %s", settings.Platform)
+			}
+			if name != "" && (!settings.KeepFailedContainers || !t.Failed()) {
 				Expect(platform.Delete.Execute(name)).To(Succeed())
 			}
 		})
