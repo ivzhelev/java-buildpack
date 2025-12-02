@@ -12,12 +12,13 @@ integration.sh --github-token <token> [OPTIONS]
 Runs the integration tests.
 
 OPTIONS
-  --help                  -h  prints the command usage
-  --github-token <token>      GitHub token to use when making API requests
-  --platform <cf|docker>      Switchblade platform to execute the tests against (default: cf)
-  --cached <true|false>       Run cached/offline tests (default: false)
-  --parallel <true|false>     Run tests in parallel (default: false)
-  --stack <stack>             Stack to use for tests (default: cflinuxfs4)
+  --help                         -h  prints the command usage
+  --github-token <token>             GitHub token to use when making API requests
+  --platform <cf|docker>             Switchblade platform to execute the tests against (default: cf)
+  --cached <true|false>              Run cached/offline tests (default: false)
+  --parallel <true|false>            Run tests in parallel (default: false)
+  --stack <stack>                    Stack to use for tests (default: cflinuxfs4)
+  --keep-failed-containers           Preserve failed test containers for debugging (default: false)
 
 EXAMPLES
   # Serial mode
@@ -25,16 +26,20 @@ EXAMPLES
 
   # Parallel mode (uses GOMAXPROCS=2)
   ./scripts/integration.sh --platform docker --parallel true
+
+  # Keep failed containers for debugging
+  ./scripts/integration.sh --platform docker --keep-failed-containers
 USAGE
 }
 
 function main() {
-  local src stack platform token cached parallel
+  local src stack platform token cached parallel keep_failed
   src="${ROOTDIR}/src/integration"
   stack="${CF_STACK:-cflinuxfs4}"
   platform="cf"
   cached="false"
   parallel="false"
+  keep_failed="false"
   token="${GITHUB_TOKEN:-}"
 
   while [[ "${#}" != 0 ]]; do
@@ -62,6 +67,11 @@ function main() {
       --stack)
         stack="${2}"
         shift 2
+        ;;
+
+      --keep-failed-containers)
+        keep_failed="true"
+        shift 1
         ;;
 
       --help|-h)
@@ -94,30 +104,33 @@ function main() {
   fi
 
   echo "=== Java Buildpack Integration Tests ==="
-  echo "Platform:      ${platform}"
-  echo "Stack:         ${stack}"
-  echo "Cached:        ${cached}"
-  echo "Parallel:      ${parallel}"
-  echo "Buildpack:     ${BUILDPACK_FILE}"
+  echo "Platform:           ${platform}"
+  echo "Stack:              ${stack}"
+  echo "Cached:             ${cached}"
+  echo "Parallel:           ${parallel}"
+  echo "Keep Failed:        ${keep_failed}"
+  echo "Buildpack:          ${BUILDPACK_FILE}"
   echo ""
 
-  specs::run "${cached}" "${parallel}" "${stack}" "${platform}" "${token}"
+  specs::run "${cached}" "${parallel}" "${stack}" "${platform}" "${token}" "${keep_failed}"
 }
 
 function specs::run() {
-  local cached parallel stack platform token
+  local cached parallel stack platform token keep_failed
   cached="${1}"
   parallel="${2}"
   stack="${3}"
   platform="${4}"
   token="${5}"
+  keep_failed="${6}"
 
-  local nodes cached_flag serial_flag platform_flag stack_flag token_flag
+  local nodes cached_flag serial_flag platform_flag stack_flag token_flag keep_failed_flag
   cached_flag="--cached=${cached}"
   serial_flag="--serial=true"
   platform_flag="--platform=${platform}"
   stack_flag="--stack=${stack}"
   token_flag="--github-token=${token}"
+  keep_failed_flag="--keep-failed-containers=${keep_failed}"
   nodes=1
 
   if [[ "${parallel}" == "true" ]]; then
@@ -141,7 +154,8 @@ function specs::run() {
          ${platform_flag} \
          ${token_flag} \
          ${stack_flag} \
-         ${serial_flag}
+         ${serial_flag} \
+         ${keep_failed_flag}
 }
 
 main "${@:-}"
