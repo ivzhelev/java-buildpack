@@ -36,12 +36,12 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 		})
 
 		context("with a simple servlet app", func() {
-			it("successfully deploys and runs", func() {
+			it("successfully deploys and runs with Java 11 (Jakarta EE)", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
 
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
@@ -50,40 +50,43 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 		})
 
 		context("with JRE selection", func() {
-			it("deploys with Java 8", func() {
+			it("deploys with Java 8 (Tomcat 9 + javax.servlet)", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "8",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat_javax"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
+				Expect(logs.String()).To(ContainSubstring("Tomcat 9"))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 
-			it("deploys with Java 11", func() {
+			it("deploys with Java 11 (Tomcat 10 + jakarta.servlet)", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
+				Expect(logs.String()).To(ContainSubstring("Tomcat 10"))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 
-			it("deploys with Java 17", func() {
+			it("deploys with Java 17 (Tomcat 10 + jakarta.servlet)", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
+				Expect(logs.String()).To(ContainSubstring("Tomcat 10"))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
@@ -95,12 +98,12 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 						"JAVA_OPTS":               "-Xmx256m",
 						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 11.+}}",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat"))
+					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
 
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("memory"))
-				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 	}
