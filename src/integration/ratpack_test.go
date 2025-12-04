@@ -41,7 +41,7 @@ func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_ratpack_dist"))
+					Execute(name, filepath.Join(fixtures, "containers", "ratpack_dist"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -53,7 +53,7 @@ func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_ratpack_staged"))
+					Execute(name, filepath.Join(fixtures, "containers", "ratpack_staged"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -67,7 +67,7 @@ func testRatpack(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_ratpack_dist"))
+					Execute(name, filepath.Join(fixtures, "containers", "ratpack_dist"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))

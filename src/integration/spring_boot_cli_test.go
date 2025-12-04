@@ -41,7 +41,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_spring_boot_cli_valid_app"))
+					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_cli_valid_app"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -53,7 +53,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_spring_boot_cli_beans_configuration"))
+					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_cli_beans_configuration"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -65,7 +65,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_spring_boot_cli_non_pogo"))
+					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_cli_non_pogo"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -77,7 +77,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_spring_boot_cli_main_method"))
+					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_cli_main_method"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -89,7 +89,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_spring_boot_cli_groovy_with_web_inf"))
+					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_cli_groovy_with_web_inf"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -103,7 +103,7 @@ func testSpringBootCLI(platform switchblade.Platform, fixtures string) func(*tes
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_spring_boot_cli_valid_app"))
+					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_cli_valid_app"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))

@@ -41,7 +41,7 @@ func testDistZip(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_dist_zip"))
+					Execute(name, filepath.Join(fixtures, "containers", "dist_zip"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -53,7 +53,7 @@ func testDistZip(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_dist_zip_app_classpath"))
+					Execute(name, filepath.Join(fixtures, "containers", "dist_zip_app_classpath"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -67,7 +67,7 @@ func testDistZip(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "8",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_dist_zip"))
+					Execute(name, filepath.Join(fixtures, "containers", "dist_zip"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -80,7 +80,7 @@ func testDistZip(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_dist_zip"))
+					Execute(name, filepath.Join(fixtures, "containers", "dist_zip"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))

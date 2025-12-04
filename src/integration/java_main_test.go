@@ -40,7 +40,7 @@ func testJavaMain(platform switchblade.Platform, fixtures string) func(*testing.
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_main"))
+					Execute(name, filepath.Join(fixtures, "containers", "main"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				// Verify buildpack detects Java Main container from MANIFEST.MF
@@ -56,7 +56,7 @@ func testJavaMain(platform switchblade.Platform, fixtures string) func(*testing.
 						"BP_JAVA_VERSION":      "11",
 						"JBP_CONFIG_JAVA_MAIN": `{java_main_class: "io.pivotal.SimpleJava"}`,
 					}).
-					Execute(name, filepath.Join(fixtures, "container_main"))
+					Execute(name, filepath.Join(fixtures, "containers", "main"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				// Verify buildpack detects and applies explicit main class configuration
@@ -72,7 +72,7 @@ func testJavaMain(platform switchblade.Platform, fixtures string) func(*testing.
 						"BP_JAVA_VERSION":      "11",
 						"JBP_CONFIG_JAVA_MAIN": `{arguments: "--server.port=$PORT"}`,
 					}).
-					Execute(name, filepath.Join(fixtures, "container_main"))
+					Execute(name, filepath.Join(fixtures, "containers", "main"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				// Verify buildpack stages successfully with custom arguments
@@ -91,7 +91,7 @@ func testJavaMain(platform switchblade.Platform, fixtures string) func(*testing.
 						"BP_JAVA_VERSION": "11",
 						"JAVA_OPTS":       "-Xmx512m -XX:+UseG1GC",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_main"))
+					Execute(name, filepath.Join(fixtures, "containers", "main"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				// Verify buildpack stages successfully with JAVA_OPTS

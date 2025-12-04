@@ -48,7 +48,7 @@ func TestIntegration(t *testing.T) {
 	root, err := filepath.Abs("./../../")
 	Expect(err).NotTo(HaveOccurred())
 
-	fixtures := filepath.Join(root, "spec", "fixtures")
+	fixtures := filepath.Join(root, "src", "integration", "testdata")
 
 	platform, err := switchblade.NewPlatform(settings.Platform, settings.GitHubToken, settings.Stack)
 	Expect(err).NotTo(HaveOccurred())
