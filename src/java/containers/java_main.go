@@ -143,6 +143,18 @@ func (j *JavaMainContainer) buildClasspath() (string, error) {
 	// Add current directory
 	classpathEntries = append(classpathEntries, ".")
 
+	// Check for BOOT-INF directory (exploded JAR layout)
+	// Even if it's not a Spring Boot app, we need to include these paths
+	bootInfClasses := filepath.Join(buildDir, "BOOT-INF", "classes")
+	if _, err := os.Stat(bootInfClasses); err == nil {
+		classpathEntries = append(classpathEntries, "BOOT-INF/classes")
+	}
+
+	bootInfLib := filepath.Join(buildDir, "BOOT-INF", "lib")
+	if _, err := os.Stat(bootInfLib); err == nil {
+		classpathEntries = append(classpathEntries, "BOOT-INF/lib/*")
+	}
+
 	// Add all JARs in the build directory
 	jarFiles, err := filepath.Glob(filepath.Join(buildDir, "*.jar"))
 	if err == nil {
@@ -154,13 +166,7 @@ func (j *JavaMainContainer) buildClasspath() (string, error) {
 	// Add lib directory if it exists
 	libDir := filepath.Join(buildDir, "lib")
 	if _, err := os.Stat(libDir); err == nil {
-		libJars, err := filepath.Glob(filepath.Join(libDir, "*.jar"))
-		if err == nil {
-			for _, jar := range libJars {
-				relPath, _ := filepath.Rel(buildDir, jar)
-				classpathEntries = append(classpathEntries, relPath)
-			}
-		}
+		classpathEntries = append(classpathEntries, "lib/*")
 	}
 
 	return strings.Join(classpathEntries, ":"), nil
@@ -183,8 +189,13 @@ func (j *JavaMainContainer) Release() (string, error) {
 		// Run from JAR
 		cmd = fmt.Sprintf("$JAVA_HOME/bin/java $JAVA_OPTS -jar %s", j.jarFile)
 	} else {
-		// Run with classpath and main class
-		cmd = fmt.Sprintf("$JAVA_HOME/bin/java $JAVA_OPTS -cp $CLASSPATH %s", mainClass)
+		// Build classpath and embed it directly in the command
+		// (Don't rely on $CLASSPATH environment variable)
+		classpath, err := j.buildClasspath()
+		if err != nil {
+			return "", fmt.Errorf("failed to build classpath: %w", err)
+		}
+		cmd = fmt.Sprintf("$JAVA_HOME/bin/java $JAVA_OPTS -cp %s %s", classpath, mainClass)
 	}
 
 	return cmd, nil
