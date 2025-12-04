@@ -42,7 +42,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				// In offline mode, all dependencies should be cached
@@ -61,7 +61,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				// Should not attempt external downloads
@@ -77,7 +77,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
@@ -92,7 +92,7 @@ func testOffline(platform switchblade.Platform, fixtures string) func(*testing.T
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "integration_valid"))
+					Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))

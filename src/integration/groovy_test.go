@@ -41,7 +41,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_groovy_non_pogo"))
+					Execute(name, filepath.Join(fixtures, "containers", "groovy_non_pogo"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -53,7 +53,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_groovy_main_method"))
+					Execute(name, filepath.Join(fixtures, "containers", "groovy_main_method"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -65,7 +65,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_groovy_shebang"))
+					Execute(name, filepath.Join(fixtures, "containers", "groovy_shebang"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -79,7 +79,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_groovy_with_jars"))
+					Execute(name, filepath.Join(fixtures, "containers", "groovy_with_jars"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -93,7 +93,7 @@ func testGroovy(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_groovy_shebang_containing_class"))
+					Execute(name, filepath.Join(fixtures, "containers", "groovy_shebang_containing_class"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))

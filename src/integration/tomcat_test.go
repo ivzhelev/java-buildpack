@@ -41,7 +41,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
@@ -55,7 +55,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "8",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat_javax"))
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_javax"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
@@ -68,7 +68,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
@@ -81,7 +81,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
@@ -98,7 +98,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 						"JAVA_OPTS":               "-Xmx256m",
 						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 11.+}}",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_tomcat_jakarta"))
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 

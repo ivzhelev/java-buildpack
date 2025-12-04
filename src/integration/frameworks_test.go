@@ -47,7 +47,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Verify New Relic agent was detected and installed
@@ -65,7 +65,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("New Relic Agent"))
@@ -88,7 +88,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Verify AppDynamics agent was detected and installed
@@ -110,7 +110,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("AppDynamics Agent"))
@@ -131,7 +131,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Verify Dynatrace agent was detected and installed
@@ -151,7 +151,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Dynatrace"))
@@ -175,7 +175,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Both agents should be detected
@@ -198,7 +198,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Azure Application Insights"))
@@ -215,7 +215,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Azure Application Insights"))
@@ -234,7 +234,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("SkyWalking"))
@@ -252,7 +252,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("SkyWalking"))
@@ -272,7 +272,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Splunk OTEL"))
@@ -291,7 +291,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Splunk OTEL"))
@@ -310,7 +310,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Google Stackdriver Profiler"))
@@ -329,7 +329,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Datadog"))
@@ -347,7 +347,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Datadog"))
@@ -367,7 +367,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Elastic APM"))
@@ -386,7 +386,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Elastic APM"))
@@ -406,7 +406,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "17",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("OpenTelemetry"))
@@ -425,7 +425,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("OpenTelemetry"))
@@ -446,7 +446,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Verify Checkmarx IAST framework was detected (even if download succeeds)
@@ -462,7 +462,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// No APM agents should be mentioned
@@ -490,7 +490,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("PostgreSQL JDBC"))
@@ -514,7 +514,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("MariaDB JDBC"))
@@ -531,7 +531,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":                      "11",
 							"JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_tomcat"))
+						Execute(name, filepath.Join(fixtures, "containers", "tomcat"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Client Certificate Mapper should be detected and installed
@@ -545,7 +545,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":                      "11",
 							"JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER": "'{enabled: false}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_tomcat"))
+						Execute(name, filepath.Join(fixtures, "containers", "tomcat"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Should not install when explicitly disabled
@@ -564,7 +564,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BPL_DEBUG_ENABLED": "true",
 							"BPL_DEBUG_PORT":    "8000",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Debug"))
@@ -580,7 +580,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BPL_JMX_ENABLED": "true",
 							"BPL_JMX_PORT":    "5000",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("JMX"))
@@ -602,7 +602,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("JaCoCo"))
@@ -626,7 +626,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":                        "11",
 							"JBP_CONFIG_SPRING_AUTO_RECONFIGURATION": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "framework_auto_reconfiguration_servlet_3"))
+						Execute(name, filepath.Join(fixtures, "frameworks", "auto_reconfiguration_servlet_3"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Spring Auto-reconfiguration should be detected for Spring apps with services
@@ -645,7 +645,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":                        "11",
 							"JBP_CONFIG_SPRING_AUTO_RECONFIGURATION": "'{enabled: false}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "framework_auto_reconfiguration_servlet_3"))
+						Execute(name, filepath.Join(fixtures, "frameworks", "auto_reconfiguration_servlet_3"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Should not install when explicitly disabled
@@ -668,7 +668,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":        "17",
 							"JBP_CONFIG_JAVA_CF_ENV": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "framework_java_cf_boot_3"))
+						Execute(name, filepath.Join(fixtures, "frameworks", "java_cf_boot_3"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Java CF Env should be detected for Spring Boot 3.x apps
@@ -686,7 +686,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION": "11",
 							"JAVA_OPTS":       "-Xmx512m -Dcustom.property=test",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Java Opts framework should detect JAVA_OPTS environment variable
@@ -700,7 +700,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":      "11",
 							"JBP_CONFIG_JAVA_OPTS": "'{java_opts: [\"-Xms256m\", \"-Xmx1024m\"]}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "integration_valid"))
+						Execute(name, filepath.Join(fixtures, "apps", "integration_valid"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// Java Opts framework should detect configuration
@@ -718,7 +718,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":         "11",
 							"JBP_CONFIG_JREBEL_AGENT": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// JRebel agent should be detected when enabled
@@ -734,7 +734,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":              "11",
 							"JBP_CONFIG_YOUR_KIT_PROFILER": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// YourKit profiler should be detected when enabled
@@ -750,7 +750,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":               "11",
 							"JBP_CONFIG_JPROFILER_PROFILER": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// JProfiler profiler should be detected when enabled
@@ -775,7 +775,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Contrast Security"))
@@ -797,7 +797,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Sealights"))
@@ -817,7 +817,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Takipi"))
@@ -837,7 +837,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Introscope"))
@@ -857,7 +857,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Riverbed AppInternals"))
@@ -874,7 +874,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 							"BP_JAVA_VERSION":                 "11",
 							"JBP_CONFIG_ASPECTJ_WEAVER_AGENT": "'{enabled: true}'",
 						}).
-						Execute(name, filepath.Join(fixtures, "framework_aspectj_weaver_meta_inf"))
+						Execute(name, filepath.Join(fixtures, "frameworks", "aspectj_weaver_meta_inf"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					// AspectJ Weaver should be detected when enabled
@@ -895,7 +895,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Stackdriver Debugger"))
@@ -909,7 +909,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION": "11",
 						}).
-						Execute(name, filepath.Join(fixtures, "container_spring_boot_staged"))
+						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
 					Expect(logs.String()).To(ContainSubstring("Container Security Provider"))

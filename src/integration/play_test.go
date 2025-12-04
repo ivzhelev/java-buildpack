@@ -41,7 +41,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.0_dist"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.0_dist"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -55,7 +55,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.1_dist"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.1_dist"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -67,7 +67,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.1_staged"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.1_staged"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -81,7 +81,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.2_dist"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.2_dist"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -93,7 +93,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.2_staged"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.2_staged"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -105,7 +105,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.2_minus_bat_file"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.2_minus_bat_file"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
@@ -123,7 +123,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "11",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.1_2.2_hybrid"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.1_2.2_hybrid"))
 				Expect(err).To(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Play Framework application version cannot be determined"))
@@ -136,7 +136,7 @@ func testPlay(platform switchblade.Platform, fixtures string) func(*testing.T, s
 					WithEnv(map[string]string{
 						"BP_JAVA_VERSION": "17",
 					}).
-					Execute(name, filepath.Join(fixtures, "container_play_2.2_dist"))
+					Execute(name, filepath.Join(fixtures, "containers", "play_2.2_dist"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
 				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
