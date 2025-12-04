@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/cloudfoundry/java-buildpack/src/java/detect"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
