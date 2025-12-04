@@ -3,18 +3,12 @@ package containers_test
 import (
 	"os"
 	"path/filepath"
-	"testing"
 
 	"github.com/cloudfoundry/java-buildpack/src/java/containers"
 	"github.com/cloudfoundry/libbuildpack"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestPlayContainer(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Play Container Suite")
-}
 
 var _ = Describe("Play Container", func() {
 	var (

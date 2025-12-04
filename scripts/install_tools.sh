@@ -9,10 +9,10 @@ if ! command -v go &> /dev/null; then
     exit 1
 fi
 
-# Check for ginkgo
+# Check for ginkgo (v2)
 if ! command -v ginkgo &> /dev/null; then
-    echo "-----> Installing ginkgo"
-    go install github.com/onsi/ginkgo/ginkgo@latest
+    echo "-----> Installing ginkgo v2"
+    go install github.com/onsi/ginkgo/v2/ginkgo@latest
 fi
 
 # Check for jq

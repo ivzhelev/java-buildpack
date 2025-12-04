@@ -7,7 +7,7 @@ import (
 
 	"github.com/cloudfoundry/java-buildpack/src/java/jres"
 	"github.com/cloudfoundry/libbuildpack"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -36,10 +36,14 @@ var _ = Describe("JRE Registry", func() {
 		cacheDir, err = os.MkdirTemp("", "cache")
 		Expect(err).NotTo(HaveOccurred())
 
+		// Create deps directory structure
+		err = os.MkdirAll(depsDir+"/0", 0755)
+		Expect(err).NotTo(HaveOccurred())
+
 		logger := libbuildpack.NewLogger(os.Stdout)
 		manifest := &libbuildpack.Manifest{}
 		installer := &libbuildpack.Installer{}
-		stager := &libbuildpack.Stager{}
+		stager := libbuildpack.NewStager([]string{buildDir, cacheDir, depsDir, "0"}, logger, manifest)
 		command := &libbuildpack.Command{}
 
 		ctx = &jres.Context{
@@ -320,17 +324,18 @@ IMPLEMENTOR="Eclipse Adoptium"`
 	})
 
 	Describe("WriteJavaOpts", func() {
-		It("writes JAVA_OPTS to environment file", func() {
+		It("writes JAVA_OPTS to profile.d script", func() {
 			opts := "-Xmx512m -Xms256m"
 			err := jres.WriteJavaOpts(ctx, opts)
 			Expect(err).NotTo(HaveOccurred())
 
-			envFile := depsDir + "/0/env/JAVA_OPTS"
-			Expect(envFile).To(BeAnExistingFile())
+			profileScript := buildDir + "/.profile.d/java_opts.sh"
+			Expect(profileScript).To(BeAnExistingFile())
 
-			content, err := os.ReadFile(envFile)
+			content, err := os.ReadFile(profileScript)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(Equal(opts))
+			Expect(string(content)).To(ContainSubstring(opts))
+			Expect(string(content)).To(ContainSubstring("export JAVA_OPTS="))
 		})
 
 		It("creates directory if it doesn't exist", func() {
@@ -338,8 +343,8 @@ IMPLEMENTOR="Eclipse Adoptium"`
 			err := jres.WriteJavaOpts(ctx, opts)
 			Expect(err).NotTo(HaveOccurred())
 
-			envFile := depsDir + "/0/env/JAVA_OPTS"
-			Expect(envFile).To(BeAnExistingFile())
+			profileScript := buildDir + "/.profile.d/java_opts.sh"
+			Expect(profileScript).To(BeAnExistingFile())
 		})
 	})
 })

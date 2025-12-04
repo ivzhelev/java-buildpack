@@ -9,8 +9,8 @@ source ./scripts/install_tools.sh
 
 echo "-----> Running unit tests"
 
-# Run ginkgo tests
+# Run ginkgo tests with v2 syntax
 cd src/java
-ginkgo -r -skipPackage=integration,brats
+ginkgo -r --skip-package=integration,brats
 
 echo "-----> Unit tests complete"
