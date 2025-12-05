@@ -36,18 +36,14 @@ func main() {
 	installer := libbuildpack.NewInstaller(manifest)
 	stager := libbuildpack.NewStager(os.Args[1:], logger, manifest)
 
-	if err := stager.CheckBuildpackValid(); err != nil {
-		os.Exit(11)
-	}
-
-	if err = installer.SetAppCacheDir(stager.CacheDir()); err != nil {
-		logger.Error("Unable to setup appcache: %s", err)
-		os.Exit(18)
-	}
-
 	if err = manifest.ApplyOverride(stager.DepsDir()); err != nil {
 		logger.Error("Unable to apply override.yml files: %s", err)
 		os.Exit(17)
+	}
+
+	if err := stager.SetStagingEnvironment(); err != nil {
+		logger.Error("Unable to setup environment variables: %s", err.Error())
+		os.Exit(10)
 	}
 
 	f := finalize.Finalizer{
@@ -59,7 +55,7 @@ func main() {
 	}
 
 	if err = finalize.Run(&f); err != nil {
-		os.Exit(14)
+		os.Exit(12)
 	}
 
 	if err := libbuildpack.RunAfterCompile(stager); err != nil {
@@ -69,16 +65,8 @@ func main() {
 
 	if err := stager.SetLaunchEnvironment(); err != nil {
 		logger.Error("Unable to setup launch environment: %s", err.Error())
-		os.Exit(16)
+		os.Exit(14)
 	}
 
-	if err := stager.WriteConfigYml(nil); err != nil {
-		logger.Error("Error writing config.yml: %s", err.Error())
-		os.Exit(15)
-	}
-
-	if err = installer.CleanupAppCache(); err != nil {
-		logger.Error("Unable to clean up app cache: %s", err)
-		os.Exit(19)
-	}
+	stager.StagingComplete()
 }
