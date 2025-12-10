@@ -235,7 +235,9 @@ func (s *SpringBootContainer) Release() (string, error) {
 		// Verify this is actually a Spring Boot application
 		if s.isSpringBootExplodedJar(buildDir) {
 			// True Spring Boot exploded JAR - use JarLauncher
-			return "$JAVA_HOME/bin/java $JAVA_OPTS -cp . org.springframework.boot.loader.JarLauncher", nil
+			// Determine the correct JarLauncher class name based on Spring Boot version
+			jarLauncherClass := s.getJarLauncherClass(buildDir)
+			return fmt.Sprintf("$JAVA_HOME/bin/java $JAVA_OPTS -cp . %s", jarLauncherClass), nil
 		}
 
 		// Exploded JAR but NOT Spring Boot - use Main-Class from MANIFEST.MF
@@ -322,4 +324,52 @@ func (s *SpringBootContainer) readMainClassFromManifest(buildDir string) string 
 	}
 
 	return ""
+}
+
+// getJarLauncherClass returns the correct JarLauncher class name based on Spring Boot version
+// Spring Boot 2.x uses: org.springframework.boot.loader.JarLauncher
+// Spring Boot 3.x uses: org.springframework.boot.loader.launch.JarLauncher
+func (s *SpringBootContainer) getJarLauncherClass(buildDir string) string {
+	manifestPath := filepath.Join(buildDir, "META-INF", "MANIFEST.MF")
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		s.context.Log.Debug("Could not read MANIFEST.MF for version detection: %s", err.Error())
+		// Default to Spring Boot 3.x (newer) launcher
+		return "org.springframework.boot.loader.launch.JarLauncher"
+	}
+
+	// Parse MANIFEST.MF to get Main-Class which tells us the actual launcher class
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Main-Class:") {
+			mainClass := strings.TrimSpace(strings.TrimPrefix(line, "Main-Class:"))
+			s.context.Log.Debug("Found Main-Class in MANIFEST.MF: %s", mainClass)
+
+			// If Main-Class is set to JarLauncher, use that exact class
+			if strings.Contains(mainClass, "JarLauncher") {
+				return mainClass
+			}
+		}
+	}
+
+	// If we couldn't determine from Main-Class, check Spring Boot version
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Spring-Boot-Version:") {
+			version := strings.TrimSpace(strings.TrimPrefix(line, "Spring-Boot-Version:"))
+			s.context.Log.Debug("Found Spring-Boot-Version: %s", version)
+
+			// Spring Boot 3.x changed the loader package structure
+			if strings.HasPrefix(version, "3.") {
+				return "org.springframework.boot.loader.launch.JarLauncher"
+			}
+			// Spring Boot 2.x uses the old loader package
+			return "org.springframework.boot.loader.JarLauncher"
+		}
+	}
+
+	// Default to Spring Boot 3.x (newer) launcher if version couldn't be determined
+	s.context.Log.Debug("Could not determine Spring Boot version, defaulting to 3.x launcher")
+	return "org.springframework.boot.loader.launch.JarLauncher"
 }
