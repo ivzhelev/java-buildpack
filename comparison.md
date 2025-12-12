@@ -156,15 +156,15 @@ Spring Boot → Tomcat → Spring Boot CLI → Groovy → Play → DistZip → J
 
 ### 3.1 All 7 JRE Providers Migrated ✅
 
-| JRE | Ruby File | Go File | Versions Supported | Default | Status |
-|-----|-----------|---------|-------------------|---------|--------|
-| **OpenJDK** | `open_jdk_jre.rb` | `openjdk.go` | 8, 11, 17, 21, 23 | 17.x | ✅ Complete |
-| **Zulu (Azul)** | `zulu_jre.rb` | `zulu.go` | 8, 11, 17 | 11.x | ✅ Complete |
-| **SAP Machine** | `sap_machine_jre.rb` | `sapmachine.go` | 11, 17 | 17.x | ✅ Complete |
-| **GraalVM** | `graal_vm_jre.rb` | `graalvm.go` | User-configured | N/A | ✅ Complete |
-| **IBM JRE** | `ibm_jre.rb` | `ibm.go` | 8 | N/A | ✅ Complete |
-| **Oracle JRE** | `oracle_jre.rb` | `oracle.go` | 8, 11 | N/A | ✅ Complete |
-| **Zing JRE** | `zing_jre.rb` | `zing.go` | 8, 11 | N/A | ✅ Complete |
+| JRE | Ruby File | Go File | Versions Supported | Default | Status | Int tests |
+|-----|-----------|---------|-------------------|---------|--------|--------|
+| **OpenJDK** | `open_jdk_jre.rb` | `openjdk.go` | 8, 11, 17, 21, 23 | 17.x | ✅ Complete | 0 |
+| **Zulu (Azul)** | `zulu_jre.rb` | `zulu.go` | 8, 11, 17 | 11.x | ✅ Complete | 0 |
+| **SAP Machine** | `sap_machine_jre.rb` | `sapmachine.go` | 11, 17 | 17.x | ✅ Complete |  1 |
+| **GraalVM** | `graal_vm_jre.rb` | `graalvm.go` | User-configured | N/A | ✅ Complete | 0 |
+| **IBM JRE** | `ibm_jre.rb` | `ibm.go` | 8 | N/A | ✅ Complete | 0 |
+| **Oracle JRE** | `oracle_jre.rb` | `oracle.go` | 8, 11 | N/A | ✅ Complete | 0 |
+| **Zing JRE** | `zing_jre.rb` | `zing.go` | 8, 11 | N/A | ✅ Complete | 0 |
 
 ### 3.2 JRE Components (All Migrated) ✅
 
