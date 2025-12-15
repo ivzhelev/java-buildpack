@@ -110,13 +110,13 @@ Spring Boot → Tomcat → Spring Boot CLI → Groovy → Play → DistZip → J
 
 #### Utility Frameworks (5 frameworks) ✅
 
-| Framework | Ruby File | Go File | Tests | Status |
-|-----------|-----------|---------|-------|--------|
-| Debug (JDWP) | `debug.rb` | `debug.go` | 1 | ✅ Complete |
-| JMX | `jmx.rb` | `jmx.go` | 1 | ✅ Complete |
-| Java Opts | `java_opts.rb` | `java_opts.go` | 0 | ✅ Complete |
-| Spring Auto Reconfig | `spring_auto_reconfiguration.rb` | `spring_auto_reconfiguration.go` | 1 | ✅ Complete |
-| Java CF Env | `java_cf_env.rb` | `java_cf_env.go` | 1 | ✅ Complete |
+| Framework | Ruby File | Go File | Tests | Status | Integration tests | Notes |
+|-----------|-----------|---------|-------|--------|--------|--------|
+| Debug (JDWP) | `debug.rb` | `debug.go` | 1 | ✅ Complete | 0 | |
+| JMX | `jmx.rb` | `jmx.go` | 1 | ✅ Complete | 0 | |
+| Java Opts | `java_opts.rb` | `java_opts.go` | 0 | ✅ Complete | 2 | JBP_CONFIG_JAVA_OPTS: "java_opts: -Xmx512M -DoptionKey=optionValue ...]" in manifest.yml both for Spring Boot and Tomcat apps|
+| Spring Auto Reconfig | `spring_auto_reconfiguration.rb` | `spring_auto_reconfiguration.go` | 1 | ✅ Complete | 0 | |
+| Java CF Env | `java_cf_env.rb` | `java_cf_env.go` | 1 | ✅ Complete | 0 | |
 
 #### Database Drivers (2 frameworks) ✅
 
@@ -156,15 +156,15 @@ Spring Boot → Tomcat → Spring Boot CLI → Groovy → Play → DistZip → J
 
 ### 3.1 All 7 JRE Providers Migrated ✅
 
-| JRE | Ruby File | Go File | Versions Supported | Default | Status | Int tests |
-|-----|-----------|---------|-------------------|---------|--------|--------|
-| **OpenJDK** | `open_jdk_jre.rb` | `openjdk.go` | 8, 11, 17, 21, 23 | 17.x | ✅ Complete | 0 |
-| **Zulu (Azul)** | `zulu_jre.rb` | `zulu.go` | 8, 11, 17 | 11.x | ✅ Complete | 0 |
-| **SAP Machine** | `sap_machine_jre.rb` | `sapmachine.go` | 11, 17 | 17.x | ✅ Complete |  1 |
-| **GraalVM** | `graal_vm_jre.rb` | `graalvm.go` | User-configured | N/A | ✅ Complete | 0 |
-| **IBM JRE** | `ibm_jre.rb` | `ibm.go` | 8 | N/A | ✅ Complete | 0 |
-| **Oracle JRE** | `oracle_jre.rb` | `oracle.go` | 8, 11 | N/A | ✅ Complete | 0 |
-| **Zing JRE** | `zing_jre.rb` | `zing.go` | 8, 11 | N/A | ✅ Complete | 0 |
+| JRE | Ruby File | Go File | Versions Supported | Default | Status | Integration tests | Notes |
+|-----|-----------|---------|-------------------|---------|--------|--------------------|--------|
+| **OpenJDK** | `open_jdk_jre.rb` | `openjdk.go` | 8, 11, 17, 21, 23 | 17.x/Tomcat 10.x (⚠️ was JRE 1.8.0_x/Tomcat 9.0.x) | ✅ Complete | 2 | Spring Boot and Tomcat apps with OpenJDK 17.0.13 (JBP_CONFIG_OPEN_JDK_JRE)|
+| **Zulu (Azul)** | `zulu_jre.rb` | `zulu.go` | 8, 11, 17 | 11.x | ✅ Complete | 0 | |
+| **SAP Machine** | `sap_machine_jre.rb` | `sapmachine.go` | 11, 17 | 17.x | ⚠️ Complete | 2 | SAPMachine JRE cannot be used but buildpacks falls back to Open JDK |
+| **GraalVM** | `graal_vm_jre.rb` | `graalvm.go` | User-configured | N/A | ✅ Complete | 0 | |
+| **IBM JRE** | `ibm_jre.rb` | `ibm.go` | 8 | N/A | ✅ Complete | 0 | |
+| **Oracle JRE** | `oracle_jre.rb` | `oracle.go` | 8, 11 | N/A | ✅ Complete | 0 | |
+| **Zing JRE** | `zing_jre.rb` | `zing.go` | 8, 11 | N/A | ✅ Complete | 0 | |
 
 ### 3.2 JRE Components (All Migrated) ✅
 
