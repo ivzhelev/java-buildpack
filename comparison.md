@@ -114,7 +114,7 @@ Spring Boot → Tomcat → Spring Boot CLI → Groovy → Play → DistZip → J
 |-----------|-----------|---------|-------|--------|--------|--------|
 | Debug (JDWP) | `debug.rb` | `debug.go` | 1 | ✅ Complete | 0 | |
 | JMX | `jmx.rb` | `jmx.go` | 1 | ✅ Complete | 0 | |
-| Java Opts | `java_opts.rb` | `java_opts.go` | 0 | ✅ Complete | 2 | JBP_CONFIG_JAVA_OPTS: "java_opts: -Xmx512M -DoptionKey=optionValue ...]" in manifest.yml both for Spring Boot and Tomcat apps|
+| Java Opts | `java_opts.rb` | `java_opts.go` | 0 | ✅ Complete | 2 | ⚠️ JBP_CONFIG_JAVA_OPTS: "java_opts: -Xmx512M -DoptionKey=optionValue ...]" in manifest.yml both for Spring Boot and Tomcat apps does not work|
 | Spring Auto Reconfig | `spring_auto_reconfiguration.rb` | `spring_auto_reconfiguration.go` | 1 | ✅ Complete | 0 | |
 | Java CF Env | `java_cf_env.rb` | `java_cf_env.go` | 1 | ✅ Complete | 0 | |
 
