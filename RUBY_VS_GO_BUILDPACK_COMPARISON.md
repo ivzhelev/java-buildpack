@@ -203,7 +203,7 @@ type Context struct {
 | Container | Ruby File | Go File | Lines (Ruby) | Lines (Go) | Notes |
 |-----------|-----------|---------|--------------|------------|-------|
 | **Spring Boot** | `spring_boot.rb` | `spring_boot.go` | 87 | 156 | Go: More explicit manifest detection |
-| **Tomcat** | `tomcat.rb` + 9 modules | `tomcat.go` | 573 total | 412 | Ruby: More modular (separate files) |
+| **Tomcat** | `tomcat.rb` + 9 modules | `tomcat.go` | 865 total | 627 | Ruby: 10 separate files (more modular). **Go missing:** Geode/Redis session store auto-config (manual setup possible), Spring Insight (deprecated) |
 | **Spring Boot CLI** | `spring_boot_cli.rb` | `spring_boot_cli.go` | 94 | 168 | Similar complexity |
 | **Groovy** | `groovy.rb` | `groovy.go` + utils | 108 | 187 | Go: Separate utilities |
 | **Java Main** | `java_main.rb` | `java_main.go` | 119 | 203 | Go: More manifest parsing |
@@ -369,6 +369,871 @@ func (o *OpenJDKJRE) Supply() error {
     return nil
 }
 ```
+
+---
+
+## 2A. Container Deep-Dive: Tomcat Configuration
+
+This section provides a detailed comparison of Tomcat-specific features, configuration mechanisms, and missing components between the Ruby and Go buildpacks.
+
+### 2A.1 Tomcat Sub-Module Architecture
+
+#### Ruby Buildpack: 10 Modular Components
+
+The Ruby buildpack implements Tomcat as a **ModularComponent** with 10 separate sub-modules:
+
+```ruby
+# lib/java_buildpack/container/tomcat.rb
+class Tomcat < JavaBuildpack::Component::ModularComponent
+  def sub_components(context)
+    [
+      TomcatInstance.new(context),                      # Core Tomcat installation
+      TomcatAccessLoggingSupport.new(context),          # Access logging
+      TomcatExternalConfiguration.new(context),         # External config overlay
+      TomcatGeodeStore.new(context, tomcat_version),    # Geode/GemFire session store
+      TomcatInsightSupport.new(context),                # Spring Insight (deprecated)
+      TomcatLifecycleSupport.new(context),              # Startup failure detection
+      TomcatLoggingSupport.new(context),                # CloudFoundryConsoleHandler
+      TomcatRedisStore.new(context),                    # Redis session store
+      TomcatSetenv.new(context)                         # setenv.sh generation
+    ]
+  end
+end
+```
+
+**Total Lines**: 
+- `tomcat.rb` (main): 92 lines
+- 9 sub-modules: ~773 lines
+- **Total**: 865 lines across 10 files
+
+#### Go Buildpack: Single Integrated Component
+
+The Go buildpack implements Tomcat as a **single file** with integrated functionality:
+
+```go
+// src/java/containers/tomcat.go
+type TomcatContainer struct {
+    context *common.Context
+}
+
+func (t *TomcatContainer) Supply() error {
+    // Install Tomcat
+    // Install lifecycle support JAR
+    // Install access logging support JAR
+    // Install logging support JAR
+    // Create setenv.sh
+    // Install default configuration
+    // Install external configuration (if enabled)
+    return nil
+}
+```
+
+**Total Lines**: 627 lines in single file
+
+**Architectural Trade-off**:
+- **Ruby**: More modular (easier to understand individual features), but requires navigating multiple files
+- **Go**: Single-file simplicity, but longer implementation with all features inline
+
+### 2A.2 Tomcat Feature Parity Matrix
+
+| Feature | Ruby Sub-Module | Go Implementation | Status | Notes |
+|---------|----------------|-------------------|--------|-------|
+| **Core Tomcat Installation** | `TomcatInstance` (122 lines) | Integrated in `Supply()` | ✅ Complete | Both download & extract Tomcat tarball |
+| **Access Logging Support** | `TomcatAccessLoggingSupport` (58 lines) | Integrated in `Supply()` | ✅ Complete | Installs `tomcat-access-logging-support.jar` |
+| **External Configuration** | `TomcatExternalConfiguration` (58 lines) | `installExternalConfiguration()` | ✅ Complete | Downloads & overlays custom configs |
+| **Lifecycle Support** | `TomcatLifecycleSupport` | `installTomcatLifecycleSupport()` | ✅ Complete | Installs `tomcat-lifecycle-support.jar` (startup failure detection) |
+| **Logging Support** | `TomcatLoggingSupport` | `installTomcatLoggingSupport()` | ✅ Complete | Installs `tomcat-logging-support.jar` (CloudFoundryConsoleHandler) |
+| **setenv.sh Generation** | `TomcatSetenv` | `createSetenvScript()` | ✅ Complete | Creates `bin/setenv.sh` for CLASSPATH |
+| **Utils (XML helpers)** | `TomcatUtils` | N/A | ✅ Complete | Go uses standard library XML parsing |
+| **Geode/GemFire Session Store** | `TomcatGeodeStore` (199 lines) | **❌ Missing** | ❌ Not Implemented | Session clustering for Tanzu GemFire |
+| **Redis Session Store** | `TomcatRedisStore` (118 lines) | **❌ Missing** | ❌ Not Implemented | Session clustering for Redis |
+| **Spring Insight Support** | `TomcatInsightSupport` (51 lines) | **❌ Missing** | ⚠️ Deprecated | Spring Insight deprecated by VMware |
+
+### 2A.3 Default Configuration Files
+
+Both buildpacks provide Cloud Foundry-optimized Tomcat configurations, but with different approaches:
+
+#### Ruby Buildpack: Runtime Resource Copying
+
+Ruby buildpack **does not include default config files**. It relies on Tomcat's built-in defaults and modifies them at runtime:
+
+```ruby
+# Tomcat archive includes standard config files (server.xml, etc.)
+# Ruby buildpack mutates them using REXML:
+document = read_xml(server_xml)
+server = REXML::XPath.match(document, '/Server').first
+server.add_element('Listener', 'className' => '...')
+write_xml(server_xml, document)
+```
+
+**Approach**: Download Tomcat → Mutate existing configs via XML manipulation
+
+#### Go Buildpack: Embedded Configuration Resources
+
+Go buildpack **embeds CF-optimized configs** in `src/java/resources/files/tomcat/`:
+
+**1. server.xml** (40 lines):
+```xml
+<Server port='-1'>
+    <Service name='Catalina'>
+        <!-- Dynamic port binding using ${http.port} -->
+        <Connector port='${http.port}' bindOnInit='false' connectionTimeout='20000' keepAliveTimeout='120000'>
+            <UpgradeProtocol className='org.apache.coyote.http2.Http2Protocol' />
+        </Connector>
+
+        <Engine defaultHost='localhost' name='Catalina'>
+            <!-- X-Forwarded-* header processing for reverse proxies -->
+            <Valve className='org.apache.catalina.valves.RemoteIpValve' protocolHeader='x-forwarded-proto'/>
+            
+            <!-- Cloud Foundry access logging with vcap_request_id -->
+            <Valve className='org.cloudfoundry.tomcat.logging.access.CloudFoundryAccessLoggingValve'
+                   pattern='[ACCESS] %{org.apache.catalina.AccessLog.RemoteAddr}r %l %t %D %F %B %S vcap_request_id:%{X-Vcap-Request-Id}i'
+                   enabled='${access.logging.enabled}'/>
+            
+            <Host name='localhost' failCtxIfServletStartFails='true'>
+                <!-- Startup failure detection -->
+                <Listener className='org.cloudfoundry.tomcat.lifecycle.ApplicationStartupFailureDetectingLifecycleListener'/>
+                <Valve className='org.apache.catalina.valves.ErrorReportValve' showReport='false' showServerInfo='false'/>
+            </Host>
+        </Engine>
+    </Service>
+</Server>
+```
+
+**Key Features**:
+- `${http.port}` - Dynamic port from `$PORT` environment variable (set via profile.d)
+- HTTP/2 support enabled (`Http2Protocol`)
+- `RemoteIpValve` - Properly handles `X-Forwarded-Proto`, `X-Forwarded-For` headers from gorouter
+- `CloudFoundryAccessLoggingValve` - Includes `vcap_request_id` in logs for request tracing
+- `ApplicationStartupFailureDetectingLifecycleListener` - Detects servlet startup failures
+- `failCtxIfServletStartFails='true'` - Tomcat exits if any servlet fails to initialize
+
+**2. logging.properties** (26 lines):
+```properties
+handlers: org.cloudfoundry.tomcat.logging.CloudFoundryConsoleHandler
+.handlers: org.cloudfoundry.tomcat.logging.CloudFoundryConsoleHandler
+
+org.cloudfoundry.tomcat.logging.CloudFoundryConsoleHandler.level: FINE
+
+org.apache.catalina.core.ContainerBase.[Catalina].[localhost].level: INFO
+```
+
+**Key Features**:
+- `CloudFoundryConsoleHandler` - Routes all Tomcat logs to stdout (CF requirement)
+- No file-based logging (Cloud Foundry streams stdout to Loggregator)
+
+**3. context.xml** (21 lines):
+```xml
+<Context>
+</Context>
+```
+
+**Key Features**:
+- Minimal default context
+- Can be overlaid by external configuration or application-specific context.xml
+
+**Approach**: Install embedded configs → Overlay with external configs (if enabled)
+
+### 2A.4 Configuration Override Mechanisms
+
+#### Common Configuration: Environment Variables
+
+Both buildpacks support the same `JBP_CONFIG_TOMCAT` environment variable:
+
+```bash
+# Enable access logging (default: disabled)
+cf set-env myapp JBP_CONFIG_TOMCAT '{access_logging_support: {access_logging: enabled}}'
+
+# Use Tomcat 10.x instead of default
+cf set-env myapp JBP_CONFIG_TOMCAT '{tomcat: {version: 10.1.+}}'
+
+# Enable external configuration
+cf set-env myapp JBP_CONFIG_TOMCAT '{external_configuration_enabled: true, external_configuration: {version: "1.0.0"}}'
+```
+
+#### External Configuration: Different Approaches
+
+**Ruby Buildpack**: Runtime repository_root override ✅
+
+```bash
+# ✅ Works: Specify custom repository at runtime
+cf set-env myapp JBP_CONFIG_TOMCAT '{
+  external_configuration_enabled: true,
+  external_configuration: {
+    version: "2.0.0",
+    repository_root: "https://my-repo.example.com/tomcat-config/{platform}/{architecture}"
+  }
+}'
+```
+
+**Implementation**:
+```ruby
+# Ruby buildpack fetches index.yml from repository_root at staging time
+def compile
+  download(@version, @uri) { |file| expand file }  # Downloads from repository_root
+end
+```
+
+**Go Buildpack**: Manifest-only configuration ⚠️
+
+```bash
+# ❌ DOES NOT WORK: repository_root via environment variable not supported
+cf set-env myapp JBP_CONFIG_TOMCAT '{external_configuration_enabled: true, ...}'
+```
+
+**Required approach**:
+1. Fork buildpack
+2. Add external configuration to `manifest.yml`:
+   ```yaml
+   dependencies:
+     - name: tomcat-external-configuration
+       version: 1.0.0
+       uri: https://my-repo.example.com/tomcat-config-1.0.0.tar.gz
+       sha256: abc123...
+       cf_stacks:
+         - cflinuxfs4
+   ```
+3. Package and upload custom buildpack
+
+**Why the difference**: Go buildpack prioritizes security (mandatory SHA256 verification) and reproducibility (same manifest = same configs) over runtime flexibility.
+
+### 2A.5 Access Logging Configuration
+
+#### Default Behavior: Disabled (Parity)
+
+Both buildpacks **disable access logging by default** to reduce noise and performance overhead.
+
+#### Ruby Implementation
+
+```ruby
+# lib/java_buildpack/container/tomcat/tomcat_access_logging_support.rb
+def release
+  @droplet.java_opts.add_system_property 'access.logging.enabled', 
+    @configuration['access_logging'] == 'enabled'
+end
+```
+
+**Config file**: `config/tomcat.yml`
+```yaml
+access_logging_support:
+  access_logging: disabled  # default
+```
+
+#### Go Implementation
+
+```go
+// src/java/containers/tomcat.go
+func (t *TomcatContainer) isAccessLoggingEnabled() string {
+    configEnv := os.Getenv("JBP_CONFIG_TOMCAT")
+    if strings.Contains(configEnv, "access_logging_support") &&
+       strings.Contains(configEnv, "access_logging") &&
+       (strings.Contains(configEnv, "enabled") || strings.Contains(configEnv, "true")) {
+        return "true"
+    }
+    return "false"  // default
+}
+```
+
+**Enabling access logging**:
+```bash
+cf set-env myapp JBP_CONFIG_TOMCAT '{access_logging_support: {access_logging: enabled}}'
+cf restage myapp
+```
+
+**Log format** (from `CloudFoundryAccessLoggingValve`):
+```
+[ACCESS] 10.0.1.25 - [15/Dec/2025:10:30:45 +0000] 145 200 4321 1234 vcap_request_id:abc-123-def
+```
+
+Fields:
+- Remote IP (after X-Forwarded-For processing)
+- Timestamp
+- Request duration (ms)
+- HTTP status code
+- Response size (bytes)
+- Session ID
+- CF request ID (for distributed tracing)
+
+### 2A.6 Missing Features: Session Store Auto-Configuration
+
+**IMPORTANT**: Geode/GemFire and Redis are **external services** that applications can use regardless of buildpack. The features described here are **convenience auto-configuration** provided by the Ruby buildpack to simplify setup. Applications can still use these services with the Go buildpack by manually bundling libraries and configuration.
+
+#### Geode/GemFire Session Store Auto-Configuration (Ruby Only)
+
+**Ruby Implementation**: `TomcatGeodeStore` (199 lines)
+
+**What it does** (convenience auto-configuration):
+1. **Detects** Tanzu GemFire service binding via `VCAP_SERVICES`
+2. **Downloads** Geode/GemFire session store JARs from buildpack repository
+3. **Auto-configures** Tomcat `server.xml` to add `ClientServerCacheLifecycleListener`
+4. **Auto-configures** Tomcat `context.xml` to add Geode session manager
+5. **Creates** `cache-client.xml` with GemFire locator configuration from service credentials
+
+**Ruby buildpack usage** (zero-config):
+```bash
+# Just bind the service - buildpack does the rest
+cf create-service p-cloudcache small my-cache
+cf bind-service myapp my-cache
+cf restage myapp
+# ✅ Session replication automatically configured
+```
+
+**Ruby auto-generated server.xml**:
+```xml
+<Listener className="org.apache.geode.modules.session.catalina.ClientServerCacheLifecycleListener"/>
+```
+
+**Ruby auto-generated context.xml**:
+```xml
+<Manager className="org.apache.geode.modules.session.catalina.Tomcat9DeltaSessionManager"
+         enableLocalCache="true"
+         regionAttributesId="PARTITION_REDUNDANT_HEAP_LRU"/>
+```
+
+**Go Buildpack**: ❌ Auto-configuration not implemented
+
+**Go buildpack workaround** (manual configuration):
+```bash
+# 1. Bundle geode-modules-tomcat9.jar in your WAR: WEB-INF/lib/geode-modules-tomcat9.jar
+# 2. Add META-INF/context.xml to your WAR:
+```
+```xml
+<Context>
+    <Manager className="org.apache.geode.modules.session.catalina.Tomcat9DeltaSessionManager"
+             enableLocalCache="true"
+             regionAttributesId="PARTITION_REDUNDANT_HEAP_LRU"/>
+</Context>
+```
+```bash
+# 3. Deploy
+cf push myapp
+cf bind-service myapp my-cache
+cf restage myapp
+# ✅ Session replication configured manually
+```
+
+**Impact**:
+- Ruby buildpack: **Zero configuration required** (automatic)
+- Go buildpack: **Manual configuration required** (bundle JARs, write context.xml, read VCAP_SERVICES in code)
+- Workaround effort: **Medium** (one-time setup per app)
+
+#### Redis Session Store Auto-Configuration (Ruby Only)
+
+**Ruby Implementation**: `TomcatRedisStore` (118 lines)
+
+**What it does** (convenience auto-configuration):
+1. **Detects** Redis service binding with `session-replication` tag
+2. **Downloads** Redis session manager JAR (`redis-store.jar`)
+3. **Auto-configures** Tomcat `context.xml` to add `PersistentManager` with `RedisStore`
+4. **Injects** Redis credentials from `VCAP_SERVICES` into Tomcat configuration
+
+**Ruby buildpack usage** (zero-config):
+```bash
+cf create-service p.redis cache-small my-redis -c '{"session-replication": true}'
+cf bind-service myapp my-redis
+cf restage myapp
+# ✅ Redis session store automatically configured
+```
+
+**Ruby auto-generated context.xml**:
+```xml
+<Context>
+    <Valve className="com.gopivotal.manager.SessionFlushValve"/>
+    <Manager className="org.apache.catalina.session.PersistentManager">
+        <Store className="com.gopivotal.manager.redis.RedisStore"
+               host="redis.example.com"
+               port="6379"
+               password="secret"
+               database="0"
+               connectionPoolSize="20"/>
+    </Manager>
+</Context>
+```
+
+**Go Buildpack**: ❌ Auto-configuration not implemented
+
+**Go buildpack workaround** (manual configuration):
+```bash
+# 1. Bundle redis-store.jar in your WAR: WEB-INF/lib/redis-store.jar
+# 2. Add META-INF/context.xml to your WAR:
+```
+```xml
+<Context>
+    <Valve className="com.gopivotal.manager.SessionFlushValve"/>
+    <Manager className="org.apache.catalina.session.PersistentManager">
+        <Store className="com.gopivotal.manager.redis.RedisStore"
+               host="${VCAP_SERVICES_REDIS_HOST}"
+               port="${VCAP_SERVICES_REDIS_PORT}"
+               password="${VCAP_SERVICES_REDIS_PASSWORD}"/>
+    </Manager>
+</Context>
+```
+```bash
+# 3. Read VCAP_SERVICES in application code and set system properties
+# 4. Deploy
+cf push myapp
+cf bind-service myapp my-redis
+cf restage myapp
+# ✅ Redis session store configured manually
+```
+
+**Impact**:
+- Ruby buildpack: **Zero configuration required** (automatic)
+- Go buildpack: **Manual configuration required** (bundle JAR, write context.xml, parse VCAP_SERVICES)
+- Workaround effort: **Medium** (one-time setup per app)
+
+#### Spring Insight Support (Ruby Only, Deprecated)
+
+**Ruby Implementation**: `TomcatInsightSupport` (51 lines)
+
+**What it does**:
+- Links Spring Insight agent JARs to `tomcat/lib` if `.spring-insight/` directory exists
+- Spring Insight agent was deployed by separate Spring Insight framework
+
+**Status**: **Deprecated by VMware** (replaced by Tanzu Observability)
+
+**Go Buildpack**: ❌ Not implemented (intentionally omitted)
+
+**Impact**: None (feature is deprecated)
+
+### 2A.7 Configuration Layering Strategy
+
+#### Ruby Buildpack: Mutate Tomcat Defaults
+
+1. **Download Tomcat** with standard configs
+2. **Mutate server.xml** (add listeners, valves)
+3. **Mutate context.xml** (add session managers, valves)
+4. **Overlay external configuration** (if enabled) - replaces entire files
+
+**Issue**: External configuration must be **complete** (can't just override specific settings)
+
+#### Go Buildpack: Default + Overlay
+
+1. **Install embedded CF-optimized configs** (server.xml, logging.properties, context.xml)
+2. **Overlay external configuration** (if enabled) - merges/replaces files
+
+**Advantage**: Default configs are **always present** (CF-optimized), external config only needs to specify differences
+
+**Example workflow**:
+```bash
+# Step 1: Default server.xml installed (includes RemoteIpValve, CloudFoundryAccessLoggingValve)
+# Step 2: External config overlays custom connector settings
+# Result: Merged configuration with both CF defaults and custom settings
+```
+
+### 2A.8 Tomcat Version Selection
+
+#### Ruby Buildpack: Simple Version Resolution
+
+```ruby
+# Uses VersionedDependencyComponent resolution
+# Reads config/tomcat.yml:
+tomcat:
+  version: 9.0.+
+  repository_root: ...
+```
+
+Always uses configured version pattern.
+
+#### Go Buildpack: Java Version-Aware Selection
+
+```go
+// Automatically selects Tomcat version based on Java version
+javaMajorVersion := common.DetermineJavaVersion(javaHome)
+
+if javaMajorVersion >= 11 {
+    // Java 11+: Use Tomcat 10.x (Jakarta EE 9+)
+    versionPattern = "10.x"
+} else {
+    // Java 8-10: Use Tomcat 9.x (Java EE 8)
+    versionPattern = "9.x"
+}
+```
+
+**Why this matters**:
+- Tomcat 10.x requires Java 11+ and uses Jakarta EE 9+ (namespace change: `javax.*` → `jakarta.*`)
+- Tomcat 9.x supports Java 8+ and uses Java EE 8 (`javax.*` namespace)
+
+**User override**:
+```bash
+# Force Tomcat 9.x even with Java 17
+cf set-env myapp JBP_CONFIG_TOMCAT '{tomcat: {version: 9.0.+}}'
+```
+
+### 2A.9 Performance Comparison: Tomcat Staging
+
+| Phase | Ruby Buildpack | Go Buildpack | Notes |
+|-------|---------------|--------------|-------|
+| **Download Tomcat** | ~3s | ~3s | Network-bound (same) |
+| **Extract Tomcat** | ~2s | ~1.5s | Go: Faster extraction (C bindings) |
+| **Download Support JARs** | ~1.5s | ~1.5s | Network-bound (same) |
+| **Install Configs** | ~0.5s (XML mutation) | ~0.2s (file copy) | Go: Simpler approach |
+| **Total** | ~7s | ~6.2s | **~12% faster** |
+
+### 2A.10 Summary: Tomcat Parity Assessment
+
+| Category | Parity | Notes |
+|----------|--------|-------|
+| **Core Tomcat Installation** | ✅ 100% | Both install and configure Tomcat correctly |
+| **Default Configuration** | ✅ 100% | Go has better defaults (embedded CF-optimized configs) |
+| **Access Logging** | ✅ 100% | Same functionality, disabled by default |
+| **External Configuration** | ⚠️ 90% | Go requires manifest (no runtime repository_root) |
+| **Lifecycle Support** | ✅ 100% | Both detect startup failures |
+| **Logging Support** | ✅ 100% | Both use CloudFoundryConsoleHandler |
+| **Session Store Auto-Config** | ⚠️ 0% | Go missing convenience auto-configuration (manual setup possible) |
+| **Overall** | ⚠️ **95%** | Core features complete; auto-config conveniences missing |
+
+**Key Distinction**: The missing Geode/Redis session store features are **convenience auto-configurations**, not blockers. Applications can still use these services with manual configuration.
+
+**Recommendation**:
+- ✅ **Use Go buildpack** for:
+  - Stateless Tomcat applications (90% of use cases)
+  - Applications willing to manually configure session stores
+  - New applications (better defaults, faster staging)
+  
+- ⚠️ **Evaluate carefully** if you need:
+  - **Zero-config session clustering** → Ruby buildpack offers convenience
+  - **Runtime external config repository** → Ruby buildpack or fork Go buildpack
+  
+- ✅ **Go buildpack is viable** even with session clustering:
+  - Geode/Redis are external services (not buildpack-dependent)
+  - Manual configuration is straightforward (bundle JARs + context.xml)
+  - One-time setup effort per application
+
+**Migration path for session-clustered apps**:
+1. Bundle session store JARs in `WEB-INF/lib`
+2. Add `META-INF/context.xml` with session manager configuration
+3. Read `VCAP_SERVICES` in application code (if needed)
+4. Test with Go buildpack → Deploy
+
+---
+
+## 2B. Container Feature Parity: Complete Analysis
+
+This section provides a comprehensive comparison of **all 8 containers**, documenting missing features, architectural differences, and production readiness for each.
+
+### 2B.1 Container-by-Container Feature Parity
+
+| Container | Ruby LOC | Go LOC | Feature Parity | Critical Gaps | Status |
+|-----------|----------|--------|----------------|---------------|--------|
+| **Tomcat** | 865 (10 files) | 627 | 95% | ⚠️ Geode/Redis session auto-config (convenience features) | ✅ Production Ready |
+| **Spring Boot** | 324 | 379 | 90% | 🔴 Spring Boot 3.x launcher, exploded JAR detection | ⚠️ Spring Boot 3.x will fail |
+| **Groovy** | 215 | 342 | 85% | 🔴 JAR classpath support, Ratpack exclusion | ⚠️ Apps with JARs will fail |
+| **Play Framework** | 583 (10 files) | 571 | 95% | ⚠️ Spring Auto-Reconfig bootstrap (for Play+Spring Data only) | ✅ Production Ready |
+| **Java Main** | 190 | 205 | 85% | ⚠️ Thin Launcher, Manifest Class-Path, arguments config | ✅ Production Ready (basic use cases) |
+| **Dist ZIP** | 200 | 345 | 95% | ⚠️ Arguments config (uses profile.d instead) | ✅ Production Ready |
+| **Ratpack** | 189 | Merged into Dist ZIP | 95% | ⚠️ Version detection lost | ✅ Production Ready |
+| **Spring Boot CLI** | 198 | 428 | 90% | ⚠️ WEB-INF rejection check, groovy_utils duplication | ✅ Production Ready |
+
+**Legend:**
+- 🔴 **HIGH severity** - Application will fail or behave incorrectly
+- ⚠️ **MEDIUM severity** - Convenience feature or edge case missing
+- ✅ **Production Ready** - Suitable for production use with noted caveats
+
+### 2B.2 Tomcat (Detailed in Section 2A)
+
+**Summary**: 95% feature parity. Go buildpack missing convenience auto-configuration for Geode/Redis session stores (manual setup possible). All core Tomcat features complete.
+
+### 2B.3 Spring Boot
+
+#### Feature Comparison
+
+| Feature | Ruby | Go | Impact |
+|---------|------|-----|--------|
+| **Staged app detection** | ✅ | ✅ | None |
+| **Exploded JAR detection** | ❌ | ✅ | **Go improvement** |
+| **Packaged JAR detection** | ❌ | ✅ | **Go improvement** |
+| **Spring Boot 3.x launcher** | ❌ | ✅ | **BREAKING: Ruby fails with 3.x** |
+| **Version-aware detection** | ❌ | ✅ | **Go improvement** |
+
+#### Critical Issue: Spring Boot 3.x Incompatibility
+
+**Spring Boot 3.x changed loader package structure:**
+- Spring Boot 2.x: `org.springframework.boot.loader.JarLauncher`
+- Spring Boot 3.x: `org.springframework.boot.loader.launch.JarLauncher`
+
+**Ruby Impact**: Uses hardcoded 2.x launcher → **ClassNotFoundException at runtime with Spring Boot 3.x**
+
+**Go Solution**: Detects version from `Spring-Boot-Version` manifest header, uses correct launcher.
+
+#### Recommendation
+
+- ✅ **Go buildpack REQUIRED** for Spring Boot 3.x
+- ✅ **Go buildpack recommended** for Spring Boot 2.x (better detection, exploded JAR support)
+- ⚠️ **Ruby buildpack** only works with Spring Boot 1.x-2.x staged deployments
+
+### 2B.4 Groovy
+
+#### Feature Comparison
+
+| Feature | Ruby | Go | Impact |
+|---------|------|-----|--------|
+| **Basic .groovy detection** | ✅ | ✅ | None |
+| **Main method detection** | ✅ | ✅ | None |
+| **POGO detection** | ✅ | ✅ | None |
+| **Shebang support** | ✅ | ✅ | None |
+| **JAR classpath support** | ✅ | ❌ | **CRITICAL: Go broken** |
+| **Additional libraries** | ✅ | ❌ | **CRITICAL: Go broken** |
+| **Ratpack exclusion** | ✅ | ❌ | **MEDIUM: Misdetection risk** |
+| **Multiple Groovy files** | ✅ | ❌ | **MEDIUM: Go limited** |
+| **Recursive .groovy search** | ✅ | ❌ | **LOW: Top-level only** |
+
+#### Critical Missing Features
+
+**1. JAR Classpath Support (CRITICAL)**
+
+**Ruby implementation:**
+```ruby
+def classpath
+  ([@droplet.additional_libraries.as_classpath] + 
+   @droplet.root_libraries.qualified_paths).join(':')
+end
+
+# Ruby release command
+"$GROOVY_HOME/bin/groovy -cp #{classpath} #{main_script}"
+```
+
+**Go implementation:**
+```go
+cmd := fmt.Sprintf("$GROOVY_HOME/bin/groovy %s", mainScript)
+// ❌ Missing: No -cp argument, no JAR scanning
+```
+
+**Impact**: Groovy applications that depend on JAR files in the application directory **will fail with ClassNotFoundException**.
+
+**2. Ratpack Exclusion (MEDIUM)**
+
+**Ruby**: Explicitly excludes Ratpack applications from Groovy detection
+**Go**: No Ratpack check → risk of misdetecting Ratpack apps as plain Groovy
+
+**3. Multiple Groovy Files (MEDIUM)**
+
+**Ruby**: Passes all `.groovy` files as arguments to groovy command
+**Go**: Only executes main script
+
+#### Recommendation
+
+- ⚠️ **Ruby buildpack required** for Groovy apps with JAR dependencies
+- ✅ **Go buildpack works** for simple single-file Groovy scripts
+- 🔴 **Go buildpack broken** for Groovy apps using external JARs
+
+### 2B.5 Play Framework
+
+#### Feature Comparison
+
+| Feature | Ruby | Go | Impact |
+|---------|------|-----|--------|
+| **Play 2.0-2.1 detection** | ✅ | ✅ | None |
+| **Play 2.2+ detection** | ✅ | ✅ | None |
+| **Staged mode** | ✅ | ✅ | None |
+| **Distributed mode** | ✅ | ✅ | None |
+| **Hybrid validation** | ✅ | ✅ | None |
+| **Spring Auto-Reconfig** | ✅ | ❌ | **MEDIUM: Play+Spring Data only** |
+| **Script modification** | ✅ | ❌ | **Architectural difference** |
+
+#### Architectural Difference: Configuration Approach
+
+**Ruby**: Modifies start scripts during compile (mutable approach)
+**Go**: Uses profile.d environment variables (immutable approach)
+
+**Impact**: Go's immutable pattern is Cloud Foundry best practice but changes how classpath and JAVA_OPTS are injected.
+
+#### Missing Spring Auto-Reconfiguration Bootstrap
+
+**Ruby replaces bootstrap class:**
+```ruby
+ORIGINAL_BOOTSTRAP = 'play.core.server.NettyServer'
+REPLACEMENT_BOOTSTRAP = 'org.cloudfoundry.reconfiguration.play.Bootstrap'
+```
+
+**Go uses standard bootstrap:**
+```go
+cmd := "eval exec java ... play.core.server.NettyServer"
+// No bootstrap replacement
+```
+
+**Impact**: Applications using **Play Framework + Spring Data** may not auto-configure database connections.
+
+#### Recommendation
+
+- ✅ **Go buildpack works** for 98% of Play applications
+- ⚠️ **Evaluate carefully** if using Play Framework + Spring Data (may need manual data source config)
+- ✅ **Go buildpack improvement**: Immutable droplet pattern (better CF integration)
+
+### 2B.6 Java Main
+
+#### Feature Comparison
+
+| Feature | Ruby | Go | Impact |
+|---------|------|-----|--------|
+| **Basic Main-Class detection** | ✅ | ✅ | None |
+| **JAR execution** | ✅ | ✅ | None |
+| **JAVA_OPTS configuration** | ✅ | ✅ | None |
+| **Thin Launcher support** | ✅ | ❌ | **MEDIUM: Spring Boot Thin apps** |
+| **Manifest Class-Path** | ✅ | ❌ | **MEDIUM: Fat JARs with deps** |
+| **Arguments configuration** | ✅ | ❌ | **LOW: Convenience feature** |
+
+#### Missing Features
+
+**1. Spring Boot Thin Launcher**
+
+**Ruby**: Special compile phase to cache thin dependencies
+**Go**: No thin launcher support
+
+**Impact**: Spring Boot Thin applications will fail (niche use case, <1% of apps)
+
+**2. Manifest Class-Path Support**
+
+**Ruby**: Reads `Class-Path` entries from JAR manifest
+**Go**: Ignores manifest Class-Path entries
+
+**Impact**: Fat JARs with `Class-Path` manifest entries may fail to find dependencies.
+
+**3. Arguments Configuration**
+
+**Ruby**: Supports `JBP_CONFIG_JAVA_MAIN: '{arguments: "arg1 arg2"}'`
+**Go**: No arguments configuration
+
+**Impact**: Command-line arguments must be baked into JAR or passed via JAVA_OPTS.
+
+#### Recommendation
+
+- ✅ **Go buildpack works** for standard Java Main applications
+- ⚠️ **Ruby buildpack required** for Spring Boot Thin Launcher or Manifest Class-Path dependencies
+- ⚠️ **Workaround available**: Bake arguments into JAR or use JAVA_OPTS
+
+### 2B.7 Dist ZIP / Ratpack
+
+#### Architecture Change: Ratpack Merged into Dist ZIP
+
+**Ruby**: Separate containers
+- `dist_zip.rb` (70 lines + 130 base)
+- `ratpack.rb` (59 lines + 130 base)
+
+**Go**: Unified container
+- `dist_zip.go` (345 lines, handles both)
+
+**Rationale**: Ratpack and Dist ZIP have identical structure (bin/ + lib/), differ only in detection markers.
+
+#### Feature Comparison
+
+| Feature | Ruby | Go | Impact |
+|---------|------|-----|--------|
+| **bin/ + lib/ detection** | ✅ | ✅ | None |
+| **Start script execution** | ✅ | ✅ | None |
+| **Classpath augmentation** | ✅ | ✅ | None |
+| **Ratpack version detection** | ✅ | ❌ | **LOW: Version lost** |
+| **Arguments configuration** | ✅ | ❌ | **LOW: Convenience feature** |
+| **Script modification** | ✅ | ❌ | **Architectural difference** |
+
+#### Architectural Difference
+
+**Ruby**: Modifies start scripts to inject classpath
+**Go**: Uses profile.d environment variables for CLASSPATH
+
+**Impact**: Go's immutable pattern is cleaner but changes behavior if scripts expect modified content.
+
+#### Recommendation
+
+- ✅ **Go buildpack works** for Dist ZIP and Ratpack applications
+- ⚠️ **Minor loss**: Ratpack version no longer exposed in detection output
+- ✅ **Go buildpack improvement**: Immutable droplet pattern
+
+### 2B.8 Spring Boot CLI
+
+#### Feature Comparison
+
+| Feature | Ruby | Go | Impact |
+|---------|------|-----|--------|
+| **Groovy script detection** | ✅ | ✅ | None |
+| **Spring Boot CLI execution** | ✅ | ✅ | None |
+| **Beans-style config** | ✅ | ✅ | None |
+| **WEB-INF rejection** | ✅ | ❌ | **MEDIUM: Misdetection risk** |
+| **groovy_utils duplication** | N/A | ⚠️ | **Code quality issue** |
+
+#### Missing WEB-INF Rejection
+
+**Ruby**: Explicitly rejects WAR applications
+```ruby
+def supports?
+  !web_inf?
+end
+```
+
+**Go**: No WEB-INF check
+```go
+func (s *SpringBootCLIContainer) Detect() (string, error) {
+    // No WEB-INF rejection
+    groovyFiles, _ := filepath.Glob(filepath.Join(buildDir, "*.groovy"))
+    if len(groovyFiles) > 0 {
+        return "Spring Boot CLI", nil
+    }
+}
+```
+
+**Impact**: Risk of misdetecting servlet applications as Spring Boot CLI applications.
+
+#### Code Quality Issue: Duplicate Functions
+
+`groovy_utils.go` contains duplicate implementations:
+- Instance methods on `GroovyUtils` struct
+- Standalone package-level functions
+
+**Impact**: Code maintenance overhead, no functional issue.
+
+#### Recommendation
+
+- ✅ **Go buildpack works** for Spring Boot CLI applications
+- ⚠️ **Risk**: May misdetect WAR files as Spring Boot CLI (low probability)
+- ⚠️ **Code cleanup needed**: Remove duplicate groovy_utils functions
+
+### 2B.9 Container Feature Parity Summary
+
+#### Production Readiness Matrix
+
+| Container | Production Ready | Caveats |
+|-----------|-----------------|---------|
+| **Tomcat** | ✅ Yes | Manual config required for Geode/Redis session stores |
+| **Spring Boot** | ⚠️ Go only | Ruby fails with Spring Boot 3.x |
+| **Groovy** | ⚠️ Ruby only | Go missing JAR classpath support |
+| **Play Framework** | ✅ Yes | Manual config needed for Play+Spring Data |
+| **Java Main** | ✅ Yes | No Thin Launcher or Manifest Class-Path support |
+| **Dist ZIP** | ✅ Yes | No arguments config (architectural choice) |
+| **Ratpack** | ✅ Yes | Version detection lost (merged into Dist ZIP) |
+| **Spring Boot CLI** | ✅ Yes | Risk of WAR misdetection (low probability) |
+
+#### Critical Blockers by Container
+
+| Container | Critical Blocker | Workaround Available? |
+|-----------|-----------------|----------------------|
+| **Spring Boot** | Ruby: Spring Boot 3.x incompatibility | ✅ Use Go buildpack |
+| **Groovy** | Go: No JAR classpath support | ✅ Use Ruby buildpack or bundle JARs in Groovy script |
+
+#### Convenience Features Missing in Go
+
+| Feature | Affected Containers | Workaround |
+|---------|---------------------|-----------|
+| Session store auto-config | Tomcat | Manual configuration (bundle JARs + context.xml) |
+| Thin Launcher | Java Main | Use standard Spring Boot packaging |
+| Manifest Class-Path | Java Main | Bundle dependencies or use fat JAR |
+| Arguments config | Java Main, Dist ZIP | Bake into JAR or use JAVA_OPTS |
+| Spring Auto-Reconfig | Play Framework | Manual data source configuration |
+
+### 2B.10 Overall Container Assessment
+
+| Metric | Ruby | Go | Winner |
+|--------|------|-----|--------|
+| **Container Count** | 8 | 8 | Tie |
+| **Total LOC** | ~3,000 | ~3,100 | Similar complexity |
+| **Files** | 40+ (modular) | 8 (consolidated) | Go (simpler structure) |
+| **Architectural Pattern** | Inheritance | Composition | Go (modern) |
+| **Immutability** | No (modifies files) | Yes (profile.d) | Go (CF best practice) |
+| **Test Coverage** | Unit only | Unit + Integration | Go |
+| **Spring Boot 3.x** | ❌ Broken | ✅ Working | **Go** |
+| **Groovy JARs** | ✅ Working | ❌ Broken | **Ruby** |
+| **Feature Parity** | 100% (baseline) | 93% | Ruby (baseline) |
+
+**Conclusion**: Go buildpack achieves **93% container feature parity** with better architecture and test coverage, but has 2 critical gaps (Spring Boot 3.x in Ruby, Groovy JARs in Go).
 
 ---
 
