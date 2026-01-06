@@ -1,45 +1,41 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# Add GOPATH bin to PATH
-export PATH="${PATH}:${HOME}/go/bin"
+set -e
+set -u
+set -o pipefail
 
-cd "$( dirname "${BASH_SOURCE[0]}" )/.."
-source ./scripts/install_tools.sh
+ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly ROOTDIR
 
-ROOTDIR="$(pwd)"
+# shellcheck source=SCRIPTDIR/.util/tools.sh
+source "${ROOTDIR}/scripts/.util/tools.sh"
 
-# Find all CLI packages
-IFS=" " read -r -a binaries <<< "$(find "${ROOTDIR}/src/java" -name cli -type d -print0 | xargs -0)"
+function main() {
+  util::tools::jq::install --directory "${ROOTDIR}/.bin"
 
-# Read supported OSes from config.json
-if [[ -f "${ROOTDIR}/config.json" ]]; then
-    IFS=" " read -r -a oses <<< "$(jq -r -S '.oses[]' "${ROOTDIR}/config.json" | xargs)"
-else
-    # Default to linux if config.json doesn't exist yet
-    oses=("linux")
-fi
+  IFS=" " read -r -a oses <<< "$(jq -r -S '.oses[]' "${ROOTDIR}/config.json" | xargs)"
+  
+  mapfile -t binaries < <(find "${ROOTDIR}/src" -mindepth 2 -name cli -type d)
 
-# Build for each OS
-for os in "${oses[@]}"; do
+  for os in "${oses[@]}"; do
     for path in "${binaries[@]}"; do
-        name="$(basename "$(dirname "${path}")")"
-        output="${ROOTDIR}/bin/${name}"
-        
-        if [[ "${os}" == "windows" ]]; then
-            output="${output}.exe"
-        fi
-        
-        # Remove existing file (could be bash wrapper or old binary)
-        rm -f "${output}"
-        
-        echo "-----> Building ${name} for ${os}"
-        CGO_ENABLED=0 GOOS="${os}" go build \
-            -mod vendor \
-            -ldflags="-s -w" \
-            -o "${output}" \
+      local name output
+      name="$(basename "$(dirname "${path}")")"
+      output="${ROOTDIR}/bin/${name}"
+
+      if [[ "${os}" == "windows" ]]; then
+        output="${output}.exe"
+      fi
+
+      CGO_ENABLED=0 \
+      GOOS="${os}" \
+        go build \
+          -mod vendor \
+          -ldflags="-s -w" \
+          -o "${output}" \
             "${path}"
     done
-done
+  done
+}
 
-echo "-----> Build complete"
+main "${@:-}"

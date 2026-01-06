@@ -5,6 +5,12 @@ set -euo pipefail
 ROOTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOTDIR
 
+# shellcheck source=SCRIPTDIR/.util/print.sh
+source "${ROOTDIR}/scripts/.util/print.sh"
+
+# shellcheck source=SCRIPTDIR/.util/tools.sh
+source "${ROOTDIR}/scripts/.util/tools.sh"
+
 function usage() {
   cat <<-USAGE
 integration.sh --github-token <token> [OPTIONS]
@@ -34,7 +40,7 @@ USAGE
 
 function main() {
   local src stack platform token cached parallel keep_failed
-  src="${ROOTDIR}/src/integration"
+  src="${ROOTDIR}/src/java/integration"
   stack="${CF_STACK:-cflinuxfs4}"
   platform="cf"
   cached="false"
@@ -99,7 +105,6 @@ function main() {
   echo "Cached:             ${cached}"
   echo "Parallel:           ${parallel}"
   echo "Keep Failed:        ${keep_failed}"
-  echo "Buildpack:          ${BUILDPACK_FILE}"
   echo ""
 
   specs::run "${cached}" "${parallel}" "${stack}" "${platform}" "${token}" "${keep_failed}"
@@ -149,6 +154,32 @@ function specs::run() {
          ${stack_flag} \
          ${serial_flag} \
          ${keep_failed_flag}
+}
+
+function buildpack::package() {
+  local version cached stack
+  version="${1}"
+  cached="${2}"
+  stack="${3}"
+
+  local name cached_flag
+  name="buildpack-${stack}-v${version}-uncached.zip"
+  cached_flag=""
+  if [[ "${cached}" == "true" ]]; then
+    cached_flag="--cached"
+    name="buildpack-${stack}-v${version}-cached.zip"
+  fi
+
+  local output
+  output="$(mktemp -d)/${name}"
+
+  CF_STACK="${stack}" bash "${ROOTDIR}/scripts/package.sh" \
+    --version "${version}" \
+    --output "${output}" \
+    --stack "${stack}" \
+    ${cached_flag} > /dev/null
+
+  printf "%s" "${output}"
 }
 
 main "${@:-}"

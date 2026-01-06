@@ -1,13 +1,19 @@
 {
-  "language": "java",
+  "stack": "cflinuxfs4",
   "oses": [
     "linux"
   ],
-  "scripts": {
-    "build": "./scripts/build.sh",
-    "unit": "./scripts/unit.sh",
-    "integration": "./scripts/integration.sh",
-    "brats": "./scripts/brats.sh",
-    "package": "./scripts/package.sh"
+  "integration": {
+    "harness": "switchblade",
+    "matrix": [
+      {
+        "cached": false,
+        "parallel": true
+      },
+      {
+        "cached": true,
+        "parallel": true
+      }
+    ]
   }
 }
