@@ -93,16 +93,6 @@ function main() {
     esac
   done
 
-  if [[ -z "${BUILDPACK_FILE:-}" ]]; then
-    echo "ERROR: BUILDPACK_FILE environment variable is required"
-    exit 1
-  fi
-
-  if [[ ! -f "${BUILDPACK_FILE}" ]]; then
-    echo "ERROR: Buildpack file not found: ${BUILDPACK_FILE}"
-    exit 1
-  fi
-
   echo "=== Java Buildpack Integration Tests ==="
   echo "Platform:           ${platform}"
   echo "Stack:              ${stack}"
@@ -141,8 +131,11 @@ function specs::run() {
   cd "${ROOTDIR}"
   go mod download
 
+  local buildpack_file
+  buildpack_file="$(buildpack::package "1.2.3" "${cached}" "${stack}")"
+
   CF_STACK="${stack}" \
-  BUILDPACK_FILE="${BUILDPACK_FILE}" \
+  BUILDPACK_FILE="${BUILDPACK_FILE:-"${buildpack_file}"}" \
   GOMAXPROCS="${GOMAXPROCS:-"${nodes}"}" \
     go test \
       -count=1 \
