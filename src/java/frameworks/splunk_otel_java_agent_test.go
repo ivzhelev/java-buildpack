@@ -2,35 +2,23 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestSplunkOtelConfiguration(t *testing.T) {
-	tests := []struct {
-		name  string
-		env   string
-		value string
-	}{
-		{
-			name:  "SPLUNK_ACCESS_TOKEN",
-			env:   "SPLUNK_ACCESS_TOKEN",
-			value: "test-token-abc123",
-		},
-		{
-			name:  "SPLUNK_REALM",
-			env:   "SPLUNK_REALM",
-			value: "us0",
-		},
-	}
+var _ = Describe("SplunkOtelJavaAgent", func() {
+	AfterEach(func() {
+		os.Unsetenv("SPLUNK_ACCESS_TOKEN")
+		os.Unsetenv("SPLUNK_REALM")
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv(tt.env, tt.value)
-			defer os.Unsetenv(tt.env)
-
-			if os.Getenv(tt.env) != tt.value {
-				t.Errorf("Expected %s to be %s", tt.env, tt.value)
-			}
-		})
-	}
-}
+	DescribeTable("configuration environment variables",
+		func(envVar, expectedValue string) {
+			os.Setenv(envVar, expectedValue)
+			Expect(os.Getenv(envVar)).To(Equal(expectedValue))
+		},
+		Entry("SPLUNK_ACCESS_TOKEN", "SPLUNK_ACCESS_TOKEN", "test-token-abc123"),
+		Entry("SPLUNK_REALM", "SPLUNK_REALM", "us0"),
+	)
+})

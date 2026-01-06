@@ -1,13 +1,13 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestSeekerSecurityProviderDetection(t *testing.T) {
-	serviceDetected := true
-
-	if !serviceDetected {
-		t.Error("Seeker Security Provider should be detected via service binding")
-	}
-}
+var _ = Describe("SeekerSecurityProvider", func() {
+	It("should be detected via service binding", func() {
+		serviceDetected := true
+		Expect(serviceDetected).To(BeTrue())
+	})
+})

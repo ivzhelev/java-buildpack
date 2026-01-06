@@ -3,139 +3,98 @@ package frameworks_test
 import (
 	"os"
 	"path/filepath"
-	"strings"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry/java-buildpack/src/java/resources"
 )
 
-// TestProtectAppEmbeddedConfigExists tests that the IngrianNAE.properties file
-// exists in the embedded resources
-func TestProtectAppEmbeddedConfigExists(t *testing.T) {
-	embeddedPath := "protect_app_security_provider/IngrianNAE.properties"
+var _ = Describe("ProtectAppSecurityProvider", func() {
+	var embeddedPath string
 
-	exists := resources.Exists(embeddedPath)
-	if !exists {
-		t.Fatalf("Expected embedded resource '%s' to exist", embeddedPath)
-	}
-}
+	BeforeEach(func() {
+		embeddedPath = "protect_app_security_provider/IngrianNAE.properties"
+	})
 
-// TestProtectAppEmbeddedConfigContent tests that the embedded IngrianNAE.properties
-// has the expected property keys
-func TestProtectAppEmbeddedConfigContent(t *testing.T) {
-	embeddedPath := "protect_app_security_provider/IngrianNAE.properties"
+	It("should have embedded config file", func() {
+		exists := resources.Exists(embeddedPath)
+		Expect(exists).To(BeTrue(), "Expected embedded resource '%s' to exist", embeddedPath)
+	})
 
-	configData, err := resources.GetResource(embeddedPath)
-	if err != nil {
-		t.Fatalf("Failed to read embedded IngrianNAE.properties: %v", err)
-	}
+	It("should have expected properties", func() {
+		configData, err := resources.GetResource(embeddedPath)
+		Expect(err).NotTo(HaveOccurred())
 
-	configStr := string(configData)
-
-	// Verify key properties
-	expectedProperties := []string{
-		"Version=",
-		"NAE_IP.1=",
-		"NAE_Port=",
-		"Protocol=ssl",
-		"Connection_Pool",
-		"Connection_Timeout",
-		"Key_Store_Location=",
-		"FIPS_Mode=",
-		"Log_Level=",
-	}
-
-	for _, prop := range expectedProperties {
-		if !strings.Contains(configStr, prop) {
-			t.Errorf("Expected property '%s' in IngrianNAE.properties", prop)
+		configStr := string(configData)
+		expectedProperties := []string{
+			"Version=",
+			"NAE_IP.1=",
+			"NAE_Port=",
+			"Protocol=ssl",
+			"Connection_Pool",
+			"Connection_Timeout",
+			"Key_Store_Location=",
+			"FIPS_Mode=",
+			"Log_Level=",
 		}
-	}
-}
 
-// TestProtectAppConfigFileCreation tests the full workflow of reading
-// embedded config and writing it to disk
-func TestProtectAppConfigFileCreation(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "protectapp-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+		for _, prop := range expectedProperties {
+			Expect(configStr).To(ContainSubstring(prop), "Expected property '%s' in IngrianNAE.properties", prop)
+		}
+	})
 
-	protectAppDir := filepath.Join(tmpDir, "protect_app_security_provider")
-	if err := os.MkdirAll(protectAppDir, 0755); err != nil {
-		t.Fatalf("Failed to create ProtectApp directory: %v", err)
-	}
+	Context("config file creation", func() {
+		var tmpDir string
+		var protectAppDir string
 
-	// Read and write embedded config
-	embeddedPath := "protect_app_security_provider/IngrianNAE.properties"
-	configData, err := resources.GetResource(embeddedPath)
-	if err != nil {
-		t.Fatalf("Failed to read embedded config: %v", err)
-	}
+		BeforeEach(func() {
+			var err error
+			tmpDir, err = os.MkdirTemp("", "protectapp-test-*")
+			Expect(err).NotTo(HaveOccurred())
+			protectAppDir = filepath.Join(tmpDir, "protect_app_security_provider")
+		})
 
-	configPath := filepath.Join(protectAppDir, "IngrianNAE.properties")
-	if err := os.WriteFile(configPath, configData, 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
-	}
+		AfterEach(func() {
+			os.RemoveAll(tmpDir)
+		})
 
-	// Verify file was created and has correct content
-	writtenData, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("Failed to read written config: %v", err)
-	}
+		It("should create config file from embedded resource", func() {
+			err := os.MkdirAll(protectAppDir, 0755)
+			Expect(err).NotTo(HaveOccurred())
 
-	if !strings.Contains(string(writtenData), "Version=") {
-		t.Error("Written config is missing version property")
-	}
+			configData, err := resources.GetResource(embeddedPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	if !strings.Contains(string(writtenData), "NAE_Port=") {
-		t.Error("Written config is missing NAE port property")
-	}
-}
+			configPath := filepath.Join(protectAppDir, "IngrianNAE.properties")
+			err = os.WriteFile(configPath, configData, 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-// TestProtectAppConfigSkipIfExists tests that existing config is not overwritten
-func TestProtectAppConfigSkipIfExists(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "protectapp-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+			writtenData, err := os.ReadFile(configPath)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(writtenData)).To(ContainSubstring("Version="))
+			Expect(string(writtenData)).To(ContainSubstring("NAE_Port="))
+		})
 
-	protectAppDir := filepath.Join(tmpDir, "protect_app_security_provider")
-	if err := os.MkdirAll(protectAppDir, 0755); err != nil {
-		t.Fatalf("Failed to create ProtectApp directory: %v", err)
-	}
+		It("should not overwrite existing config", func() {
+			err := os.MkdirAll(protectAppDir, 0755)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Create a user-provided config FIRST
-	configPath := filepath.Join(protectAppDir, "IngrianNAE.properties")
-	userConfig := "# User-provided ProtectApp configuration\nVersion=3.0\nNAE_IP.1=192.168.1.100\nCustomProperty=CustomValue\n"
-	if err := os.WriteFile(configPath, []byte(userConfig), 0644); err != nil {
-		t.Fatalf("Failed to create user config: %v", err)
-	}
+			configPath := filepath.Join(protectAppDir, "IngrianNAE.properties")
+			userConfig := "# User-provided ProtectApp configuration\nVersion=3.0\nNAE_IP.1=192.168.1.100\nCustomProperty=CustomValue\n"
+			err = os.WriteFile(configPath, []byte(userConfig), 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Simulate the framework's check: if file exists, skip installation
-	if _, err := os.Stat(configPath); err == nil {
-		t.Log("Config already exists, skipping installation (as expected)")
-	} else {
-		t.Error("Should have detected existing config file")
-	}
+			_, err = os.Stat(configPath)
+			Expect(err).NotTo(HaveOccurred(), "Should have detected existing config file")
 
-	// Verify the user config is still intact
-	existingData, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("Failed to read existing config: %v", err)
-	}
+			existingData, err := os.ReadFile(configPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	existingStr := string(existingData)
-	if !strings.Contains(existingStr, "# User-provided ProtectApp configuration") {
-		t.Error("User-provided config was modified")
-	}
-
-	if !strings.Contains(existingStr, "CustomProperty=CustomValue") {
-		t.Error("User-provided custom property was lost")
-	}
-
-	if !strings.Contains(existingStr, "192.168.1.100") {
-		t.Error("User-provided NAE IP was lost")
-	}
-}
+			existingStr := string(existingData)
+			Expect(existingStr).To(ContainSubstring("# User-provided ProtectApp configuration"))
+			Expect(existingStr).To(ContainSubstring("CustomProperty=CustomValue"))
+			Expect(existingStr).To(ContainSubstring("192.168.1.100"))
+		})
+	})
+})

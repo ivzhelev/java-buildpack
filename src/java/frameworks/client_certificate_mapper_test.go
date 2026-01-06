@@ -2,109 +2,63 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+	"strings"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestClientCertificateMapperEnabledByDefault(t *testing.T) {
-	result := isClientCertMapperEnabled("")
-	if !result {
-		t.Error("Client Certificate Mapper should be enabled by default")
-	}
-}
+var _ = Describe("Client Certificate Mapper", func() {
+	AfterEach(func() {
+		os.Unsetenv("JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER")
+	})
 
-func TestClientCertificateMapperDisabledViaConfig(t *testing.T) {
-	tests := []struct {
-		name   string
-		config string
-		expect bool
-	}{
-		{
-			name:   "explicitly disabled",
-			config: "enabled: false",
-			expect: false,
-		},
-		{
-			name:   "explicitly enabled",
-			config: "enabled: true",
-			expect: true,
-		},
-		{
-			name:   "empty config",
-			config: "",
-			expect: true,
-		},
-		{
-			name:   "config without enabled key",
-			config: "some_other_key: value",
-			expect: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := isClientCertMapperEnabled(tt.config)
-			if result != tt.expect {
-				t.Errorf("Expected %v, got %v for config: %s", tt.expect, result, tt.config)
-			}
+	Describe("Default behavior", func() {
+		It("is enabled by default", func() {
+			result := isClientCertMapperEnabled("")
+			Expect(result).To(BeTrue())
 		})
-	}
-}
+	})
 
-func TestClientCertificateMapperConfigParsing(t *testing.T) {
-	testCases := []struct {
-		name     string
-		envVar   string
-		expected bool
-	}{
-		{
-			name:     "YAML with enabled false",
-			envVar:   "{enabled: false}",
-			expected: false,
-		},
-		{
-			name:     "YAML with enabled true",
-			envVar:   "{enabled: true}",
-			expected: true,
-		},
-		{
-			name:     "YAML with quoted enabled false",
-			envVar:   "{'enabled': false}",
-			expected: false,
-		},
-		{
-			name:     "YAML with quoted enabled true",
-			envVar:   "{'enabled': true}",
-			expected: true,
-		},
-		{
-			name:     "empty config",
-			envVar:   "",
-			expected: true,
-		},
-	}
+	Describe("Configuration", func() {
+		DescribeTable("handles enabled flag",
+			func(config string, expected bool) {
+				result := isClientCertMapperEnabled(config)
+				Expect(result).To(Equal(expected))
+			},
+			Entry("explicitly disabled", "enabled: false", false),
+			Entry("explicitly enabled", "enabled: true", true),
+			Entry("empty config", "", true),
+			Entry("config without enabled key", "some_other_key: value", true),
+		)
+	})
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			os.Setenv("JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER", tc.envVar)
-			defer os.Unsetenv("JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER")
+	Describe("Config parsing", func() {
+		DescribeTable("parses JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER",
+			func(envVar string, expected bool) {
+				os.Setenv("JBP_CONFIG_CLIENT_CERTIFICATE_MAPPER", envVar)
 
-			result := isClientCertMapperEnabled(tc.envVar)
-			if result != tc.expected {
-				t.Errorf("Expected %v for config %q, got %v", tc.expected, tc.envVar, result)
-			}
-		})
-	}
-}
+				result := isClientCertMapperEnabled(envVar)
+				Expect(result).To(Equal(expected))
+			},
+			Entry("YAML with enabled false", "{enabled: false}", false),
+			Entry("YAML with enabled true", "{enabled: true}", true),
+			Entry("YAML with quoted enabled false", "{'enabled': false}", false),
+			Entry("YAML with quoted enabled true", "{'enabled': true}", true),
+			Entry("empty config", "", true),
+		)
+	})
+})
 
 func isClientCertMapperEnabled(config string) bool {
 	if config == "" {
 		return true
 	}
 
-	if contains(config, "enabled: false") || contains(config, "'enabled': false") {
+	if strings.Contains(config, "enabled: false") || strings.Contains(config, "'enabled': false") {
 		return false
 	}
-	if contains(config, "enabled: true") || contains(config, "'enabled': true") {
+	if strings.Contains(config, "enabled: true") || strings.Contains(config, "'enabled': true") {
 		return true
 	}
 

@@ -1,13 +1,16 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestJRebelLicenseDetection(t *testing.T) {
-	licenseData := "test-license-data"
+var _ = Describe("JRebel Agent", func() {
+	Describe("License detection", func() {
+		It("requires a license", func() {
+			licenseData := "test-license-data"
 
-	if licenseData == "" {
-		t.Error("JRebel requires a license")
-	}
-}
+			Expect(licenseData).NotTo(BeEmpty())
+		})
+	})
+})

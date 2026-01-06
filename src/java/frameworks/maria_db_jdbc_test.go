@@ -1,24 +1,22 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestMariaDBJDBCServiceDetection(t *testing.T) {
-	serviceTypes := []string{"mariadb", "mysql"}
+var _ = Describe("MariaDBJDBC", func() {
+	It("should support both mariadb and mysql services", func() {
+		serviceTypes := []string{"mariadb", "mysql"}
 
-	for _, svc := range serviceTypes {
-		if svc != "mariadb" && svc != "mysql" {
-			t.Errorf("Unexpected service type: %s", svc)
+		for _, svc := range serviceTypes {
+			Expect([]string{"mariadb", "mysql"}).To(ContainElement(svc))
 		}
-	}
-}
+	})
 
-func TestMariaDBJDBCDriverReplacement(t *testing.T) {
-	oldDriver := "com.mysql.jdbc.Driver"
-	newDriver := "org.mariadb.jdbc.Driver"
-
-	if oldDriver == newDriver {
-		t.Error("MariaDB driver should replace MySQL driver")
-	}
-}
+	It("should replace MySQL driver with MariaDB driver", func() {
+		oldDriver := "com.mysql.jdbc.Driver"
+		newDriver := "org.mariadb.jdbc.Driver"
+		Expect(oldDriver).NotTo(Equal(newDriver))
+	})
+})

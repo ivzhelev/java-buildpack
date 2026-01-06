@@ -2,128 +2,64 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestDebugEnabledDetection(t *testing.T) {
-	tests := []struct {
-		name     string
-		env      string
-		value    string
-		expected bool
-	}{
-		{
-			name:     "BPL_DEBUG_ENABLED true",
-			env:      "BPL_DEBUG_ENABLED",
-			value:    "true",
-			expected: true,
-		},
-		{
-			name:     "BPL_DEBUG_ENABLED 1",
-			env:      "BPL_DEBUG_ENABLED",
-			value:    "1",
-			expected: true,
-		},
-		{
-			name:     "BPL_DEBUG_ENABLED false",
-			env:      "BPL_DEBUG_ENABLED",
-			value:    "false",
-			expected: false,
-		},
-		{
-			name:     "JBP_CONFIG_DEBUG enabled",
-			env:      "JBP_CONFIG_DEBUG",
-			value:    "enabled: true",
-			expected: true,
-		},
-	}
+var _ = Describe("Debug", func() {
+	AfterEach(func() {
+		os.Unsetenv("BPL_DEBUG_ENABLED")
+		os.Unsetenv("JBP_CONFIG_DEBUG")
+		os.Unsetenv("BPL_DEBUG_PORT")
+		os.Unsetenv("BPL_DEBUG_SUSPEND")
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv(tt.env, tt.value)
-			defer os.Unsetenv(tt.env)
+	Describe("debug enabled detection", func() {
+		DescribeTable("environment variables",
+			func(envVar, value string) {
+				os.Setenv(envVar, value)
+				Expect(os.Getenv(envVar)).To(Equal(value))
+			},
+			Entry("BPL_DEBUG_ENABLED true", "BPL_DEBUG_ENABLED", "true"),
+			Entry("BPL_DEBUG_ENABLED 1", "BPL_DEBUG_ENABLED", "1"),
+			Entry("BPL_DEBUG_ENABLED false", "BPL_DEBUG_ENABLED", "false"),
+			Entry("JBP_CONFIG_DEBUG enabled", "JBP_CONFIG_DEBUG", "enabled: true"),
+		)
+	})
 
-			value := os.Getenv(tt.env)
-			if value != tt.value {
-				t.Errorf("Expected %s to be %s, got %s", tt.env, tt.value, value)
-			}
-		})
-	}
-}
-
-func TestDebugPortConfiguration(t *testing.T) {
-	defaultPort := 8000
-
-	tests := []struct {
-		name string
-		env  string
-		port int
-	}{
-		{
-			name: "default port",
-			env:  "",
-			port: defaultPort,
-		},
-		{
-			name: "BPL_DEBUG_PORT",
-			env:  "9000",
-			port: 9000,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.env != "" {
-				os.Setenv("BPL_DEBUG_PORT", tt.env)
-				defer os.Unsetenv("BPL_DEBUG_PORT")
-			}
-
+	Describe("debug port configuration", func() {
+		It("should use default port when not set", func() {
+			defaultPort := 8000
 			port := defaultPort
 			if portEnv := os.Getenv("BPL_DEBUG_PORT"); portEnv != "" {
 				port = 9000
 			}
-
-			if port != tt.port {
-				t.Errorf("Expected port %d, got %d", tt.port, port)
-			}
+			Expect(port).To(Equal(defaultPort))
 		})
-	}
-}
 
-func TestDebugSuspendMode(t *testing.T) {
-	tests := []struct {
-		name    string
-		suspend string
-		expect  bool
-	}{
-		{
-			name:    "suspend enabled",
-			suspend: "true",
-			expect:  true,
-		},
-		{
-			name:    "suspend disabled",
-			suspend: "false",
-			expect:  false,
-		},
-		{
-			name:    "suspend not set",
-			suspend: "",
-			expect:  false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.suspend != "" {
-				os.Setenv("BPL_DEBUG_SUSPEND", tt.suspend)
-				defer os.Unsetenv("BPL_DEBUG_SUSPEND")
+		It("should use BPL_DEBUG_PORT when set", func() {
+			os.Setenv("BPL_DEBUG_PORT", "9000")
+			port := 8000
+			if portEnv := os.Getenv("BPL_DEBUG_PORT"); portEnv != "" {
+				port = 9000
 			}
-
-			suspend := os.Getenv("BPL_DEBUG_SUSPEND") == "true"
-			if suspend != tt.expect {
-				t.Errorf("Expected suspend %v, got %v", tt.expect, suspend)
-			}
+			Expect(port).To(Equal(9000))
 		})
-	}
-}
+	})
+
+	Describe("debug suspend mode", func() {
+		DescribeTable("suspend configuration",
+			func(suspendValue string, expected bool) {
+				if suspendValue != "" {
+					os.Setenv("BPL_DEBUG_SUSPEND", suspendValue)
+				}
+				suspend := os.Getenv("BPL_DEBUG_SUSPEND") == "true"
+				Expect(suspend).To(Equal(expected))
+			},
+			Entry("suspend enabled", "true", true),
+			Entry("suspend disabled", "false", false),
+			Entry("suspend not set", "", false),
+		)
+	})
+})

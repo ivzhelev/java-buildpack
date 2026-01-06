@@ -1,13 +1,16 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestJavaCfEnvDetection(t *testing.T) {
-	springBootPresent := true
+var _ = Describe("Java CF Env", func() {
+	Describe("Detection", func() {
+		It("is detected when Spring Boot is present", func() {
+			springBootPresent := true
 
-	if !springBootPresent {
-		t.Error("Java CF Env should be detected when Spring Boot is present")
-	}
-}
+			Expect(springBootPresent).To(BeTrue())
+		})
+	})
+})

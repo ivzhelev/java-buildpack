@@ -1,327 +1,194 @@
-package containers
+package containers_test
 
 import (
 	"os"
 	"path/filepath"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/cloudfoundry/java-buildpack/src/java/containers"
 )
 
-func TestHasMainMethod(t *testing.T) {
-	tests := []struct {
-		name     string
-		content  string
-		expected bool
-	}{
-		{
-			name: "has static void main",
-			content: `class MyApp {
+var _ = Describe("HasMainMethod", func() {
+	DescribeTable("detecting main method in Groovy files",
+		func(content string, expected bool) {
+			tmpFile, err := os.CreateTemp("", "test-*.groovy")
+			Expect(err).NotTo(HaveOccurred())
+			defer os.Remove(tmpFile.Name())
+
+			_, err = tmpFile.WriteString(content)
+			Expect(err).NotTo(HaveOccurred())
+			tmpFile.Close()
+
+			result, err := containers.HasMainMethod(tmpFile.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expected))
+		},
+		Entry("has static void main", `class MyApp {
 	static void main(String[] args) {
 		println "Hello"
 	}
-}`,
-			expected: true,
-		},
-		{
-			name: "has static void main with whitespace variations",
-			content: `class MyApp {
+}`, true),
+		Entry("has static void main with whitespace variations", `class MyApp {
 	static  void  main ( String[] args ) {
 		println "Hello"
 	}
-}`,
-			expected: true,
-		},
-		{
-			name: "no main method",
-			content: `class Alpha {
-}`,
-			expected: false,
-		},
-		{
-			name:     "simple script no main",
-			content:  `println 'Hello World'`,
-			expected: false,
-		},
-		{
-			name: "instance method not static main",
-			content: `class Test {
+}`, true),
+		Entry("no main method", `class Alpha {
+}`, false),
+		Entry("simple script no main", `println 'Hello World'`, false),
+		Entry("instance method not static main", `class Test {
 	void main() {
 		println "Not static"
 	}
-}`,
-			expected: false,
-		},
-	}
+}`, false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+var _ = Describe("IsPOGO", func() {
+	DescribeTable("detecting Plain Old Groovy Objects",
+		func(content string, expected bool) {
 			tmpFile, err := os.CreateTemp("", "test-*.groovy")
-			if err != nil {
-				t.Fatal(err)
-			}
+			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(tmpFile.Name())
 
-			if _, err := tmpFile.WriteString(tt.content); err != nil {
-				t.Fatal(err)
-			}
+			_, err = tmpFile.WriteString(content)
+			Expect(err).NotTo(HaveOccurred())
 			tmpFile.Close()
 
-			result, err := HasMainMethod(tmpFile.Name())
-			if err != nil {
-				t.Fatalf("HasMainMethod() error = %v", err)
-			}
-			if result != tt.expected {
-				t.Errorf("HasMainMethod() = %v, want %v", result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestIsPOGO(t *testing.T) {
-	tests := []struct {
-		name     string
-		content  string
-		expected bool
-	}{
-		{
-			name: "simple class definition",
-			content: `class Alpha {
-}`,
-			expected: true,
+			result, err := containers.IsPOGO(tmpFile.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expected))
 		},
-		{
-			name: "class with inheritance",
-			content: `class MyApp extends BaseApp {
+		Entry("simple class definition", `class Alpha {
+}`, true),
+		Entry("class with inheritance", `class MyApp extends BaseApp {
 	void run() {}
-}`,
-			expected: true,
-		},
-		{
-			name:     "simple script no class",
-			content:  `println 'Hello World'`,
-			expected: false,
-		},
-		{
-			name: "script with variables no class",
-			content: `def name = "World"
-println "Hello $name"`,
-			expected: false,
-		},
-		{
-			name: "class keyword in comment",
-			content: `// This is not a class
-println 'Hello'`,
-			expected: false,
-		},
-		{
-			name:     "class keyword in string",
-			content:  `println "This mentions class but isn't one"`,
-			expected: false,
-		},
-	}
+}`, true),
+		Entry("simple script no class", `println 'Hello World'`, false),
+		Entry("script with variables no class", `def name = "World"
+println "Hello $name"`, false),
+		Entry("class keyword in comment", `// This is not a class
+println 'Hello'`, false),
+		Entry("class keyword in string", `println "This mentions class but isn't one"`, false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+var _ = Describe("HasShebang", func() {
+	DescribeTable("detecting shebang in Groovy files",
+		func(content string, expected bool) {
 			tmpFile, err := os.CreateTemp("", "test-*.groovy")
-			if err != nil {
-				t.Fatal(err)
-			}
+			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(tmpFile.Name())
 
-			if _, err := tmpFile.WriteString(tt.content); err != nil {
-				t.Fatal(err)
-			}
+			_, err = tmpFile.WriteString(content)
+			Expect(err).NotTo(HaveOccurred())
 			tmpFile.Close()
 
-			result, err := IsPOGO(tmpFile.Name())
-			if err != nil {
-				t.Fatalf("IsPOGO() error = %v", err)
-			}
-			if result != tt.expected {
-				t.Errorf("IsPOGO() = %v, want %v", result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestHasShebang(t *testing.T) {
-	tests := []struct {
-		name     string
-		content  string
-		expected bool
-	}{
-		{
-			name: "has shebang",
-			content: `#!/usr/bin/env groovy
-println 'Hello World'`,
-			expected: true,
+			result, err := containers.HasShebang(tmpFile.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(expected))
 		},
-		{
-			name: "has groovy shebang",
-			content: `#!/usr/bin/groovy
-println 'Hello'`,
-			expected: true,
-		},
-		{
-			name: "no shebang",
-			content: `class Alpha {
-}`,
-			expected: false,
-		},
-		{
-			name: "shebang not at start",
-			content: `
+		Entry("has shebang", `#!/usr/bin/env groovy
+println 'Hello World'`, true),
+		Entry("has groovy shebang", `#!/usr/bin/groovy
+println 'Hello'`, true),
+		Entry("no shebang", `class Alpha {
+}`, false),
+		Entry("shebang not at start", `
 #!/usr/bin/env groovy
-println 'Hello'`,
-			expected: false,
-		},
-		{
-			name: "comment mentioning shebang",
-			content: `// Use #!/usr/bin/env groovy at the top
-println 'Hello'`,
-			expected: false,
-		},
-	}
+println 'Hello'`, false),
+		Entry("comment mentioning shebang", `// Use #!/usr/bin/env groovy at the top
+println 'Hello'`, false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tmpFile, err := os.CreateTemp("", "test-*.groovy")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer os.Remove(tmpFile.Name())
+var _ = Describe("FindMainGroovyScript", func() {
+	var tmpDir string
 
-			if _, err := tmpFile.WriteString(tt.content); err != nil {
-				t.Fatal(err)
-			}
-			tmpFile.Close()
+	BeforeEach(func() {
+		var err error
+		tmpDir, err = os.MkdirTemp("", "groovy-test-*")
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-			result, err := HasShebang(tmpFile.Name())
-			if err != nil {
-				t.Fatalf("HasShebang() error = %v", err)
-			}
-			if result != tt.expected {
-				t.Errorf("HasShebang() = %v, want %v", result, tt.expected)
-			}
-		})
-	}
-}
+	AfterEach(func() {
+		os.RemoveAll(tmpDir)
+	})
 
-func TestFindMainGroovyScript(t *testing.T) {
-	// Create a temporary directory for test files
-	tmpDir, err := os.MkdirTemp("", "groovy-test-*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	Context("with various Groovy script types", func() {
+		var pogoFile, nonPogoFile, mainMethodFile, shebangFile string
 
-	// Create test files
-	pogoFile := filepath.Join(tmpDir, "Alpha.groovy")
-	if err := os.WriteFile(pogoFile, []byte("class Alpha {}"), 0644); err != nil {
-		t.Fatal(err)
-	}
+		BeforeEach(func() {
+			var err error
 
-	nonPogoFile := filepath.Join(tmpDir, "Application.groovy")
-	if err := os.WriteFile(nonPogoFile, []byte("println 'Hello World'"), 0644); err != nil {
-		t.Fatal(err)
-	}
+			pogoFile = filepath.Join(tmpDir, "Alpha.groovy")
+			err = os.WriteFile(pogoFile, []byte("class Alpha {}"), 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-	mainMethodFile := filepath.Join(tmpDir, "Main.groovy")
-	mainContent := `class Main {
+			nonPogoFile = filepath.Join(tmpDir, "Application.groovy")
+			err = os.WriteFile(nonPogoFile, []byte("println 'Hello World'"), 0644)
+			Expect(err).NotTo(HaveOccurred())
+
+			mainMethodFile = filepath.Join(tmpDir, "Main.groovy")
+			mainContent := `class Main {
 	static void main(String[] args) {
 		println "Main"
 	}
 }`
-	if err := os.WriteFile(mainMethodFile, []byte(mainContent), 0644); err != nil {
-		t.Fatal(err)
-	}
+			err = os.WriteFile(mainMethodFile, []byte(mainContent), 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-	shebangFile := filepath.Join(tmpDir, "Script.groovy")
-	if err := os.WriteFile(shebangFile, []byte("#!/usr/bin/env groovy\nprintln 'Script'"), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	tests := []struct {
-		name     string
-		scripts  []string
-		expected string
-	}{
-		{
-			name:     "single non-POGO script",
-			scripts:  []string{nonPogoFile},
-			expected: nonPogoFile,
-		},
-		{
-			name:     "POGO and non-POGO - selects non-POGO",
-			scripts:  []string{pogoFile, nonPogoFile},
-			expected: nonPogoFile,
-		},
-		{
-			name:     "single file with main method",
-			scripts:  []string{mainMethodFile},
-			expected: mainMethodFile,
-		},
-		{
-			name:     "single file with shebang",
-			scripts:  []string{shebangFile},
-			expected: shebangFile,
-		},
-		{
-			name:     "only POGO - no candidate",
-			scripts:  []string{pogoFile},
-			expected: "",
-		},
-		{
-			name: "multiple candidates - returns empty",
-			// Both non-POGO and shebang file are candidates
-			scripts:  []string{nonPogoFile, shebangFile},
-			expected: "",
-		},
-		{
-			name:     "empty list",
-			scripts:  []string{},
-			expected: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := FindMainGroovyScript(tt.scripts)
-			if err != nil {
-				t.Fatalf("FindMainGroovyScript() error = %v", err)
-			}
-			if result != tt.expected {
-				t.Errorf("FindMainGroovyScript() = %v, want %v", result, tt.expected)
-			}
+			shebangFile = filepath.Join(tmpDir, "Script.groovy")
+			err = os.WriteFile(shebangFile, []byte("#!/usr/bin/env groovy\nprintln 'Script'"), 0644)
+			Expect(err).NotTo(HaveOccurred())
 		})
-	}
-}
 
-func TestFindMainGroovyScriptWithInvalidFiles(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "groovy-test-*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+		DescribeTable("finding the main Groovy script",
+			func(getScripts func() []string, expected func() string) {
+				result, err := containers.FindMainGroovyScript(getScripts())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).To(Equal(expected()))
+			},
+			Entry("single non-POGO script",
+				func() []string { return []string{nonPogoFile} },
+				func() string { return nonPogoFile }),
+			Entry("POGO and non-POGO - selects non-POGO",
+				func() []string { return []string{pogoFile, nonPogoFile} },
+				func() string { return nonPogoFile }),
+			Entry("single file with main method",
+				func() []string { return []string{mainMethodFile} },
+				func() string { return mainMethodFile }),
+			Entry("single file with shebang",
+				func() []string { return []string{shebangFile} },
+				func() string { return shebangFile }),
+			Entry("only POGO - no candidate",
+				func() []string { return []string{pogoFile} },
+				func() string { return "" }),
+			Entry("multiple candidates - returns empty",
+				func() []string { return []string{nonPogoFile, shebangFile} },
+				func() string { return "" }),
+			Entry("empty list",
+				func() []string { return []string{} },
+				func() string { return "" }),
+		)
+	})
 
-	// Create an unreadable file (binary garbage)
-	invalidFile := filepath.Join(tmpDir, "invalid.groovy")
-	if err := os.WriteFile(invalidFile, []byte{0xff, 0xfe}, 0644); err != nil {
-		t.Fatal(err)
-	}
+	Context("with invalid files", func() {
+		It("should skip invalid files and select valid ones", func() {
+			invalidFile := filepath.Join(tmpDir, "invalid.groovy")
+			err := os.WriteFile(invalidFile, []byte{0xff, 0xfe}, 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Create a valid non-POGO file
-	validFile := filepath.Join(tmpDir, "valid.groovy")
-	if err := os.WriteFile(validFile, []byte("println 'Hello'"), 0644); err != nil {
-		t.Fatal(err)
-	}
+			validFile := filepath.Join(tmpDir, "valid.groovy")
+			err = os.WriteFile(validFile, []byte("println 'Hello'"), 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Should skip invalid file and select valid one
-	scripts := []string{invalidFile, validFile}
-	result, err := FindMainGroovyScript(scripts)
-	if err != nil {
-		t.Fatalf("FindMainGroovyScript() error = %v", err)
-	}
-	if result != validFile {
-		t.Errorf("FindMainGroovyScript() = %v, want %v", result, validFile)
-	}
-}
+			scripts := []string{invalidFile, validFile}
+			result, err := containers.FindMainGroovyScript(scripts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(validFile))
+		})
+	})
+})

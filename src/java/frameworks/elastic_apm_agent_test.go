@@ -2,50 +2,39 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestElasticAPMServiceDetection(t *testing.T) {
-	tests := []struct {
-		name    string
-		envVars map[string]string
-		expect  bool
-	}{
-		{
-			name: "ELASTIC_APM_SERVER_URL set",
-			envVars: map[string]string{
-				"ELASTIC_APM_SERVER_URL": "https://apm.example.com",
+var _ = Describe("Elastic APM Agent", func() {
+	AfterEach(func() {
+		os.Unsetenv("ELASTIC_APM_SERVER_URL")
+		os.Unsetenv("ELASTIC_APM_SERVICE_NAME")
+	})
+
+	Describe("Service detection", func() {
+		DescribeTable("detects based on environment variables",
+			func(envVars map[string]string, expectDetection bool) {
+				for k, v := range envVars {
+					os.Setenv(k, v)
+				}
+
+				hasServerURL := os.Getenv("ELASTIC_APM_SERVER_URL") != ""
+				hasServiceName := os.Getenv("ELASTIC_APM_SERVICE_NAME") != ""
+
+				detected := hasServerURL || hasServiceName
+				Expect(detected).To(Equal(expectDetection))
 			},
-			expect: true,
-		},
-		{
-			name: "ELASTIC_APM_SERVICE_NAME set",
-			envVars: map[string]string{
-				"ELASTIC_APM_SERVICE_NAME": "my-service",
-			},
-			expect: true,
-		},
-		{
-			name:    "no elastic env vars",
-			envVars: map[string]string{},
-			expect:  false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for k, v := range tt.envVars {
-				os.Setenv(k, v)
-				defer os.Unsetenv(k)
-			}
-
-			hasServerURL := os.Getenv("ELASTIC_APM_SERVER_URL") != ""
-			hasServiceName := os.Getenv("ELASTIC_APM_SERVICE_NAME") != ""
-
-			detected := hasServerURL || hasServiceName
-			if detected != tt.expect {
-				t.Errorf("Expected detection %v, got %v", tt.expect, detected)
-			}
-		})
-	}
-}
+			Entry("ELASTIC_APM_SERVER_URL set",
+				map[string]string{"ELASTIC_APM_SERVER_URL": "https://apm.example.com"},
+				true),
+			Entry("ELASTIC_APM_SERVICE_NAME set",
+				map[string]string{"ELASTIC_APM_SERVICE_NAME": "my-service"},
+				true),
+			Entry("no elastic env vars",
+				map[string]string{},
+				false),
+		)
+	})
+})

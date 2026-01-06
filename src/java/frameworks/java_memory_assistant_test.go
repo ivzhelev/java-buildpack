@@ -2,15 +2,22 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestJavaMemoryAssistantDetection(t *testing.T) {
-	heapDumpPath := "/tmp/heapdumps"
-	os.Setenv("BPL_HEAP_DUMP_PATH", heapDumpPath)
-	defer os.Unsetenv("BPL_HEAP_DUMP_PATH")
+var _ = Describe("Java Memory Assistant", func() {
+	AfterEach(func() {
+		os.Unsetenv("BPL_HEAP_DUMP_PATH")
+	})
 
-	if os.Getenv("BPL_HEAP_DUMP_PATH") != heapDumpPath {
-		t.Errorf("Expected BPL_HEAP_DUMP_PATH to be %s", heapDumpPath)
-	}
-}
+	Describe("Detection", func() {
+		It("uses BPL_HEAP_DUMP_PATH configuration", func() {
+			heapDumpPath := "/tmp/heapdumps"
+			os.Setenv("BPL_HEAP_DUMP_PATH", heapDumpPath)
+
+			Expect(os.Getenv("BPL_HEAP_DUMP_PATH")).To(Equal(heapDumpPath))
+		})
+	})
+})

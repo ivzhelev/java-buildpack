@@ -1,15 +1,18 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestRiverbedAppInternalsCredentials(t *testing.T) {
-	credentials := map[string]interface{}{
-		"analysis_server": "riverbed.example.com",
-	}
+var _ = Describe("RiverbedAppInternalsAgent", func() {
+	It("should require analysis_server credential", func() {
+		credentials := map[string]interface{}{
+			"analysis_server": "riverbed.example.com",
+		}
 
-	if server, ok := credentials["analysis_server"].(string); !ok || server == "" {
-		t.Error("analysis_server is required for Riverbed AppInternals")
-	}
-}
+		server, ok := credentials["analysis_server"].(string)
+		Expect(ok).To(BeTrue())
+		Expect(server).NotTo(BeEmpty())
+	})
+})

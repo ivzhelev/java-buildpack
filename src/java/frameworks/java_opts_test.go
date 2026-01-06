@@ -1,258 +1,90 @@
 package frameworks
 
 import (
-	"reflect"
 	"strings"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// TestShellSplit tests the shellSplit function for various quote scenarios
-func TestShellSplit(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected []string
-		wantErr  bool
-	}{
-		{
-			name:     "simple space-separated",
-			input:    "-Xmx512M -Xms256M",
-			expected: []string{"-Xmx512M", "-Xms256M"},
-			wantErr:  false,
-		},
-		{
-			name:     "single quoted with spaces",
-			input:    "-DtestJBPConfig1='test test'",
-			expected: []string{"-DtestJBPConfig1=test test"},
-			wantErr:  false,
-		},
-		{
-			name:     "double quoted with spaces",
-			input:    `-DtestJBPConfig2="test test"`,
-			expected: []string{"-DtestJBPConfig2=test test"},
-			wantErr:  false,
-		},
-		{
-			name:     "double quoted with env var",
-			input:    `-DtestJBPConfig2="$PATH"`,
-			expected: []string{"-DtestJBPConfig2=$PATH"},
-			wantErr:  false,
-		},
-		{
-			name:     "mixed quotes and plain",
-			input:    `-DtestJBPConfig1='test test' -DtestJBPConfig2="$PATH" -Xmx512M`,
-			expected: []string{"-DtestJBPConfig1=test test", "-DtestJBPConfig2=$PATH", "-Xmx512M"},
-			wantErr:  false,
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: nil,
-			wantErr:  false,
-		},
-		{
-			name:     "only spaces",
-			input:    "   ",
-			expected: nil,
-			wantErr:  false,
-		},
-		{
-			name:     "escaped quotes",
-			input:    `test\ with\ spaces`,
-			expected: []string{"test with spaces"},
-			wantErr:  false,
-		},
-		{
-			name:     "unclosed single quote",
-			input:    "-Dtest='unclosed",
-			expected: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "unclosed double quote",
-			input:    `-Dtest="unclosed`,
-			expected: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "multiple spaces between args",
-			input:    "-Xmx512M    -Xms256M",
-			expected: []string{"-Xmx512M", "-Xms256M"},
-			wantErr:  false,
-		},
-		{
-			name:     "Ruby buildpack example with double single quotes",
-			input:    "-DtestJBPConfig1='test test' -DtestJBPConfig2=\"$PATH\"",
-			expected: []string{"-DtestJBPConfig1=test test", "-DtestJBPConfig2=$PATH"},
-			wantErr:  false,
-		},
-		{
-			name:     "empty single quotes",
-			input:    "-Dtest=''",
-			expected: []string{"-Dtest="},
-			wantErr:  false,
-		},
-		{
-			name:     "empty double quotes",
-			input:    `-Dtest=""`,
-			expected: []string{"-Dtest="},
-			wantErr:  false,
-		},
-		{
-			name:     "mixed quote types nested (single inside unquoted)",
-			input:    "arg1='value with spaces' arg2=plain",
-			expected: []string{"arg1=value with spaces", "arg2=plain"},
-			wantErr:  false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := shellSplit(tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("shellSplit() expected error but got none")
+var _ = Describe("JavaOpts", func() {
+	Describe("shellSplit", func() {
+		DescribeTable("shell parsing",
+			func(input string, expected []string, shouldError bool) {
+				result, err := shellSplit(input)
+				if shouldError {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result).To(Equal(expected))
 				}
-				return
-			}
+			},
+			Entry("simple space-separated", "-Xmx512M -Xms256M", []string{"-Xmx512M", "-Xms256M"}, false),
+			Entry("single quoted with spaces", "-DtestJBPConfig1='test test'", []string{"-DtestJBPConfig1=test test"}, false),
+			Entry("double quoted with spaces", `-DtestJBPConfig2="test test"`, []string{"-DtestJBPConfig2=test test"}, false),
+			Entry("double quoted with env var", `-DtestJBPConfig2="$PATH"`, []string{"-DtestJBPConfig2=$PATH"}, false),
+			Entry("mixed quotes and plain", `-DtestJBPConfig1='test test' -DtestJBPConfig2="$PATH" -Xmx512M`,
+				[]string{"-DtestJBPConfig1=test test", "-DtestJBPConfig2=$PATH", "-Xmx512M"}, false),
+			Entry("empty string", "", nil, false),
+			Entry("only spaces", "   ", nil, false),
+			Entry("escaped quotes", `test\ with\ spaces`, []string{"test with spaces"}, false),
+			Entry("unclosed single quote", "-Dtest='unclosed", nil, true),
+			Entry("unclosed double quote", `-Dtest="unclosed`, nil, true),
+			Entry("multiple spaces between args", "-Xmx512M    -Xms256M", []string{"-Xmx512M", "-Xms256M"}, false),
+			Entry("Ruby buildpack example", "-DtestJBPConfig1='test test' -DtestJBPConfig2=\"$PATH\"",
+				[]string{"-DtestJBPConfig1=test test", "-DtestJBPConfig2=$PATH"}, false),
+			Entry("empty single quotes", "-Dtest=''", []string{"-Dtest="}, false),
+			Entry("empty double quotes", `-Dtest=""`, []string{"-Dtest="}, false),
+			Entry("mixed quote types", "arg1='value with spaces' arg2=plain",
+				[]string{"arg1=value with spaces", "arg2=plain"}, false),
+		)
 
-			if err != nil {
-				t.Errorf("shellSplit() unexpected error: %v", err)
-				return
-			}
+		It("should preserve environment variables literally", func() {
+			input := `-DtestJBPConfig1='test test' -DtestJBPConfig2="$PATH"`
+			result, err := shellSplit(input)
+			Expect(err).NotTo(HaveOccurred())
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("shellSplit() = %v, expected %v", result, tt.expected)
-			}
+			expected := []string{"-DtestJBPConfig1=test test", "-DtestJBPConfig2=$PATH"}
+			Expect(result).To(Equal(expected))
+			Expect(result[1]).To(Equal("-DtestJBPConfig2=$PATH"))
 		})
-	}
-}
+	})
 
-// TestShellSplitEdgeCases tests additional edge cases
-func TestShellSplitEdgeCases(t *testing.T) {
-	// Test case from user's issue
-	input := `-DtestJBPConfig1='test test' -DtestJBPConfig2="$PATH"`
-	result, err := shellSplit(input)
-	if err != nil {
-		t.Fatalf("shellSplit() unexpected error: %v", err)
-	}
+	Describe("rubyStyleEscape", func() {
+		DescribeTable("Ruby-style escaping",
+			func(input, expected string) {
+				result := rubyStyleEscape(input)
+				Expect(result).To(Equal(expected))
+			},
+			Entry("simple value no special chars", "-Xmx512M", "-Xmx512M"),
+			Entry("value with spaces", "-DtestJBPConfig1=test test", "-DtestJBPConfig1=test\\ test"),
+			Entry("value with equals sign", "-Dkey=value", "-Dkey=value"),
+			Entry("value with equals sign in value part", "-Dkey=value=something", "-Dkey=value\\=something"),
+			Entry("no equals sign", "-Xmx512M", "-Xmx512M"),
+			Entry("value with dollar sign", "-Dpath=$PATH", "-Dpath=$PATH"),
+			Entry("complex value with multiple spaces", "-Dprop=hello world test", "-Dprop=hello\\ world\\ test"),
+			Entry("path with slashes", "/usr/local/bin:/usr/bin", "/usr/local/bin:/usr/bin"),
+			Entry("parentheses in value", "-Dtest=(value)", "-Dtest=\\(value\\)"),
+			Entry("percent sign in value", "-XX:OnOutOfMemoryError=kill -9 %p", "-XX:OnOutOfMemoryError=kill\\ -9\\ \\%p"),
+		)
+	})
 
-	expected := []string{"-DtestJBPConfig1=test test", "-DtestJBPConfig2=$PATH"}
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("User's example failed: got %v, expected %v", result, expected)
-	}
+	Describe("shellSplit and join round-trip", func() {
+		DescribeTable("round-trip parsing",
+			func(input, expected string) {
+				tokens, err := shellSplit(input)
+				Expect(err).NotTo(HaveOccurred())
 
-	// Verify that environment variable is preserved (not expanded)
-	if result[1] != "-DtestJBPConfig2=$PATH" {
-		t.Errorf("Environment variable should be preserved as literal $PATH, got: %s", result[1])
-	}
-}
-
-// TestRubyStyleEscape tests the Ruby buildpack-style escaping
-func TestRubyStyleEscape(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "simple value no special chars",
-			input:    "-Xmx512M",
-			expected: "-Xmx512M",
-		},
-		{
-			name:     "value with spaces",
-			input:    "-DtestJBPConfig1=test test",
-			expected: "-DtestJBPConfig1=test\\ test",
-		},
-		{
-			name:     "value with equals sign (SHOULD be escaped in value!)",
-			input:    "-Dkey=value",
-			expected: "-Dkey=value",
-		},
-		{
-			name:     "value with equals sign in value part",
-			input:    "-Dkey=value=something",
-			expected: "-Dkey=value\\=something", // = in VALUE gets escaped!
-		},
-		{
-			name:     "no equals sign",
-			input:    "-Xmx512M",
-			expected: "-Xmx512M",
-		},
-		{
-			name:     "value with dollar sign (preserved)",
-			input:    "-Dpath=$PATH",
-			expected: "-Dpath=$PATH",
-		},
-		{
-			name:     "complex value with multiple spaces",
-			input:    "-Dprop=hello world test",
-			expected: "-Dprop=hello\\ world\\ test",
-		},
-		{
-			name:     "path with slashes (preserved)",
-			input:    "/usr/local/bin:/usr/bin",
-			expected: "/usr/local/bin:/usr/bin",
-		},
-		{
-			name:     "parentheses in value (original bug!)",
-			input:    "-Dtest=(value)",
-			expected: "-Dtest=\\(value\\)",
-		},
-		{
-			name:     "percent sign in value",
-			input:    "-XX:OnOutOfMemoryError=kill -9 %p",
-			expected: "-XX:OnOutOfMemoryError=kill\\ -9\\ \\%p",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := rubyStyleEscape(tt.input)
-			if result != tt.expected {
-				t.Errorf("rubyStyleEscape() = %q, expected %q", result, tt.expected)
-			}
-		})
-	}
-}
-
-// TestShellSplitAndJoin tests the round-trip: parse quoted string, join, and verify format
-func TestShellSplitAndJoin(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "simple values",
-			input:    "-Xmx512M -Xms256M",
-			expected: "-Xmx512M -Xms256M",
-		},
-		{
-			name:     "values with spaces in quotes",
-			input:    `-DtestJBPConfig1='test test' -DtestJBPConfig2="value with spaces"`,
-			expected: "-DtestJBPConfig1=test test -DtestJBPConfig2=value with spaces",
-		},
-		{
-			name:     "user's example from issue",
-			input:    `-DtestJBPConfig1='test test' -DtestJBPConfig2="$PATH"`,
-			expected: "-DtestJBPConfig1=test test -DtestJBPConfig2=$PATH",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tokens, err := shellSplit(tt.input)
-			if err != nil {
-				t.Fatalf("shellSplit() unexpected error: %v", err)
-			}
-
-			result := strings.Join(tokens, " ")
-			if result != tt.expected {
-				t.Errorf("shellSplit + join = %q, expected %q", result, tt.expected)
-			}
-		})
-	}
-}
+				result := strings.Join(tokens, " ")
+				Expect(result).To(Equal(expected))
+			},
+			Entry("simple values", "-Xmx512M -Xms256M", "-Xmx512M -Xms256M"),
+			Entry("values with spaces in quotes",
+				`-DtestJBPConfig1='test test' -DtestJBPConfig2="value with spaces"`,
+				"-DtestJBPConfig1=test test -DtestJBPConfig2=value with spaces"),
+			Entry("user's example from issue",
+				`-DtestJBPConfig1='test test' -DtestJBPConfig2="$PATH"`,
+				"-DtestJBPConfig1=test test -DtestJBPConfig2=$PATH"),
+		)
+	})
+})

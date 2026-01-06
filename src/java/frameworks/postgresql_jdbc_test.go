@@ -1,21 +1,18 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestPostgreSQLJDBCServiceDetection(t *testing.T) {
-	serviceLabel := "postgresql"
+var _ = Describe("PostgreSQLJDBC", func() {
+	It("should detect postgresql service", func() {
+		serviceLabel := "postgresql"
+		Expect(serviceLabel).To(Equal("postgresql"))
+	})
 
-	if serviceLabel != "postgresql" {
-		t.Errorf("Expected service label 'postgresql', got %s", serviceLabel)
-	}
-}
-
-func TestPostgreSQLJDBCDriverClass(t *testing.T) {
-	driver := "org.postgresql.Driver"
-
-	if driver != "org.postgresql.Driver" {
-		t.Errorf("Expected driver 'org.postgresql.Driver', got %s", driver)
-	}
-}
+	It("should use correct driver class", func() {
+		driver := "org.postgresql.Driver"
+		Expect(driver).To(Equal("org.postgresql.Driver"))
+	})
+})

@@ -2,22 +2,30 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+	"strings"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestSpringAutoReconfigurationEnabled(t *testing.T) {
-	os.Setenv("SPRING_PROFILES_ACTIVE", "cloud")
-	defer os.Unsetenv("SPRING_PROFILES_ACTIVE")
+var _ = Describe("Spring Auto-reconfiguration", func() {
+	AfterEach(func() {
+		os.Unsetenv("SPRING_PROFILES_ACTIVE")
+	})
 
-	if os.Getenv("SPRING_PROFILES_ACTIVE") != "cloud" {
-		t.Error("Spring Auto-reconfiguration should set cloud profile")
-	}
-}
+	Describe("Profile activation", func() {
+		It("sets cloud profile", func() {
+			os.Setenv("SPRING_PROFILES_ACTIVE", "cloud")
 
-func TestSpringAutoReconfigurationCanBeDisabled(t *testing.T) {
-	config := "enabled: false"
+			Expect(os.Getenv("SPRING_PROFILES_ACTIVE")).To(Equal("cloud"))
+		})
+	})
 
-	if !contains(config, "enabled: false") {
-		t.Error("Should be able to disable Spring Auto-reconfiguration")
-	}
-}
+	Describe("Configuration", func() {
+		It("can be disabled via config", func() {
+			config := "enabled: false"
+
+			Expect(strings.Contains(config, "enabled: false")).To(BeTrue())
+		})
+	})
+})

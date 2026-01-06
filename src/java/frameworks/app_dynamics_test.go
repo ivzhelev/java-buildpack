@@ -3,148 +3,106 @@ package frameworks_test
 import (
 	"os"
 	"path/filepath"
-	"strings"
-	"testing"
 
 	"github.com/cloudfoundry/java-buildpack/src/java/resources"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// TestAppDynamicsEmbeddedConfigExists tests that the app-agent-config.xml file
-// exists in the embedded resources
-func TestAppDynamicsEmbeddedConfigExists(t *testing.T) {
-	embeddedPath := "app_dynamics_agent/defaults/conf/app-agent-config.xml"
+var _ = Describe("AppDynamics Embedded Config", func() {
+	const embeddedPath = "app_dynamics_agent/defaults/conf/app-agent-config.xml"
 
-	exists := resources.Exists(embeddedPath)
-	if !exists {
-		t.Fatalf("Expected embedded resource '%s' to exist", embeddedPath)
-	}
-}
+	Describe("Config file existence", func() {
+		It("exists in embedded resources", func() {
+			exists := resources.Exists(embeddedPath)
+			Expect(exists).To(BeTrue())
+		})
+	})
 
-// TestAppDynamicsEmbeddedConfigContent tests that the embedded app-agent-config.xml
-// has the expected XML structure
-func TestAppDynamicsEmbeddedConfigContent(t *testing.T) {
-	embeddedPath := "app_dynamics_agent/defaults/conf/app-agent-config.xml"
+	Describe("Config file content", func() {
+		It("has expected XML structure", func() {
+			configData, err := resources.GetResource(embeddedPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	configData, err := resources.GetResource(embeddedPath)
-	if err != nil {
-		t.Fatalf("Failed to read embedded app-agent-config.xml: %v", err)
-	}
+			configStr := string(configData)
+			Expect(configStr).To(ContainSubstring("<app-agent-configuration>"))
 
-	configStr := string(configData)
+			expectedSections := []string{
+				"<configuration-properties>",
+				"<sensitive-url-filters>",
+				"<sensitive-data-filters>",
+				"<agent-services>",
+				"<agent-service name=\"BCIEngine\"",
+				"<agent-service name=\"SnapshotService\"",
+				"<agent-service name=\"TransactionMonitoringService\"",
+			}
 
-	// Verify XML root element
-	if !strings.Contains(configStr, "<app-agent-configuration>") {
-		t.Error("Expected root element '<app-agent-configuration>' in config")
-	}
+			for _, section := range expectedSections {
+				Expect(configStr).To(ContainSubstring(section))
+			}
+		})
+	})
+})
 
-	// Verify key configuration sections
-	expectedSections := []string{
-		"<configuration-properties>",
-		"<sensitive-url-filters>",
-		"<sensitive-data-filters>",
-		"<agent-services>",
-		"<agent-service name=\"BCIEngine\"",
-		"<agent-service name=\"SnapshotService\"",
-		"<agent-service name=\"TransactionMonitoringService\"",
-	}
+var _ = Describe("AppDynamics Config File Operations", func() {
+	var tmpDir string
 
-	for _, section := range expectedSections {
-		if !strings.Contains(configStr, section) {
-			t.Errorf("Expected configuration section '%s' in app-agent-config.xml", section)
-		}
-	}
-}
+	BeforeEach(func() {
+		var err error
+		tmpDir, err = os.MkdirTemp("", "appdynamics-test-*")
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-// TestAppDynamicsConfigFileCreation tests the full workflow of reading
-// embedded config and writing it to disk
-func TestAppDynamicsConfigFileCreation(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "appdynamics-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	AfterEach(func() {
+		os.RemoveAll(tmpDir)
+	})
 
-	// Create agent directory structure (defaults/conf)
-	confDir := filepath.Join(tmpDir, "app_dynamics_agent", "defaults", "conf")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatalf("Failed to create conf directory: %v", err)
-	}
+	Describe("Config file creation", func() {
+		It("writes embedded config to disk successfully", func() {
+			confDir := filepath.Join(tmpDir, "app_dynamics_agent", "defaults", "conf")
+			err := os.MkdirAll(confDir, 0755)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Read embedded config
-	embeddedPath := "app_dynamics_agent/defaults/conf/app-agent-config.xml"
-	configData, err := resources.GetResource(embeddedPath)
-	if err != nil {
-		t.Fatalf("Failed to read embedded config: %v", err)
-	}
+			embeddedPath := "app_dynamics_agent/defaults/conf/app-agent-config.xml"
+			configData, err := resources.GetResource(embeddedPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Write to disk (no template processing needed)
-	configPath := filepath.Join(confDir, "app-agent-config.xml")
-	if err := os.WriteFile(configPath, configData, 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
-	}
+			configPath := filepath.Join(confDir, "app-agent-config.xml")
+			err = os.WriteFile(configPath, configData, 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Verify file was created
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		t.Error("Config file was not created")
-	}
+			_, err = os.Stat(configPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Read back and verify content
-	writtenData, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("Failed to read written config: %v", err)
-	}
+			writtenData, err := os.ReadFile(configPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	writtenStr := string(writtenData)
+			writtenStr := string(writtenData)
+			Expect(writtenStr).To(ContainSubstring("<app-agent-configuration>"))
+			Expect(writtenStr).To(ContainSubstring("<agent-service name=\"BCIEngine\""))
+		})
+	})
 
-	// Verify content integrity
-	if !strings.Contains(writtenStr, "<app-agent-configuration>") {
-		t.Error("Written config is missing root XML element")
-	}
+	Describe("Config file skip if exists", func() {
+		It("does not overwrite existing user config", func() {
+			confDir := filepath.Join(tmpDir, "app_dynamics_agent", "defaults", "conf")
+			err := os.MkdirAll(confDir, 0755)
+			Expect(err).NotTo(HaveOccurred())
 
-	if !strings.Contains(writtenStr, "<agent-service name=\"BCIEngine\"") {
-		t.Error("Written config is missing BCIEngine service")
-	}
-}
+			configPath := filepath.Join(confDir, "app-agent-config.xml")
+			userConfig := "<!-- User-provided configuration -->\n<app-agent-configuration><configuration-properties><property name=\"custom\" value=\"true\"/></configuration-properties></app-agent-configuration>"
+			err = os.WriteFile(configPath, []byte(userConfig), 0644)
+			Expect(err).NotTo(HaveOccurred())
 
-// TestAppDynamicsConfigSkipIfExists tests that existing config is not overwritten
-func TestAppDynamicsConfigSkipIfExists(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "appdynamics-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+			_, err = os.Stat(configPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	confDir := filepath.Join(tmpDir, "app_dynamics_agent", "defaults", "conf")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
-		t.Fatalf("Failed to create conf directory: %v", err)
-	}
+			existingData, err := os.ReadFile(configPath)
+			Expect(err).NotTo(HaveOccurred())
 
-	// Create a user-provided config FIRST
-	configPath := filepath.Join(confDir, "app-agent-config.xml")
-	userConfig := "<!-- User-provided configuration -->\n<app-agent-configuration><configuration-properties><property name=\"custom\" value=\"true\"/></configuration-properties></app-agent-configuration>"
-	if err := os.WriteFile(configPath, []byte(userConfig), 0644); err != nil {
-		t.Fatalf("Failed to create user config: %v", err)
-	}
-
-	// Simulate the framework's check: if file exists, skip installation
-	if _, err := os.Stat(configPath); err == nil {
-		t.Log("Config already exists, skipping installation (as expected)")
-	} else {
-		t.Error("Should have detected existing config file")
-	}
-
-	// Verify the user config is still intact
-	existingData, err := os.ReadFile(configPath)
-	if err != nil {
-		t.Fatalf("Failed to read existing config: %v", err)
-	}
-
-	existingStr := string(existingData)
-	if !strings.Contains(existingStr, "<!-- User-provided configuration -->") {
-		t.Error("User-provided config was modified")
-	}
-
-	if !strings.Contains(existingStr, "custom") {
-		t.Error("User-provided custom property was lost")
-	}
-}
+			existingStr := string(existingData)
+			Expect(existingStr).To(ContainSubstring("<!-- User-provided configuration -->"))
+			Expect(existingStr).To(ContainSubstring("custom"))
+		})
+	})
+})

@@ -2,25 +2,32 @@ package frameworks_test
 
 import (
 	"os"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestJProfilerLicenseKey(t *testing.T) {
-	licenseKey := "test-license-key-12345"
-	os.Setenv("JPROFILER_LICENSE_KEY", licenseKey)
-	defer os.Unsetenv("JPROFILER_LICENSE_KEY")
+var _ = Describe("JProfiler Profiler", func() {
+	AfterEach(func() {
+		os.Unsetenv("JPROFILER_LICENSE_KEY")
+		os.Unsetenv("JPROFILER_PORT")
+	})
 
-	if os.Getenv("JPROFILER_LICENSE_KEY") != licenseKey {
-		t.Errorf("Expected JPROFILER_LICENSE_KEY to be %s", licenseKey)
-	}
-}
+	Describe("License configuration", func() {
+		It("uses JPROFILER_LICENSE_KEY", func() {
+			licenseKey := "test-license-key-12345"
+			os.Setenv("JPROFILER_LICENSE_KEY", licenseKey)
 
-func TestJProfilerPort(t *testing.T) {
-	port := "8849"
-	os.Setenv("JPROFILER_PORT", port)
-	defer os.Unsetenv("JPROFILER_PORT")
+			Expect(os.Getenv("JPROFILER_LICENSE_KEY")).To(Equal(licenseKey))
+		})
+	})
 
-	if os.Getenv("JPROFILER_PORT") != port {
-		t.Errorf("Expected JPROFILER_PORT to be %s", port)
-	}
-}
+	Describe("Port configuration", func() {
+		It("uses JPROFILER_PORT", func() {
+			port := "8849"
+			os.Setenv("JPROFILER_PORT", port)
+
+			Expect(os.Getenv("JPROFILER_PORT")).To(Equal(port))
+		})
+	})
+})

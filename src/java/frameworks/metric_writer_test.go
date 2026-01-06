@@ -1,13 +1,13 @@
 package frameworks_test
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestMetricWriterDetection(t *testing.T) {
-	springBootActuatorPresent := true
-
-	if !springBootActuatorPresent {
-		t.Error("Metric Writer should detect Spring Boot Actuator")
-	}
-}
+var _ = Describe("MetricWriter", func() {
+	It("should detect Spring Boot Actuator", func() {
+		springBootActuatorPresent := true
+		Expect(springBootActuatorPresent).To(BeTrue())
+	})
+})
