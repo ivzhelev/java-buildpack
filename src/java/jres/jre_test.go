@@ -3,7 +3,6 @@ package jres_test
 import (
 	"os"
 	"path/filepath"
-	"testing"
 	"time"
 
 	"github.com/cloudfoundry/java-buildpack/src/java/common"
@@ -12,11 +11,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestJREs(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "JREs Suite")
-}
 
 var _ = Describe("JRE Registry", func() {
 	var (
