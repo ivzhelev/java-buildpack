@@ -4,7 +4,7 @@ go 1.25.4
 
 require (
 	github.com/cloudfoundry/libbuildpack v0.0.0-20251203175254-7be530ec9fef
-	github.com/cloudfoundry/switchblade v0.9.3
+	github.com/cloudfoundry/switchblade v0.9.4-0.20260106154138-56c590e4a96e
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/sclevine/spec v1.4.0
