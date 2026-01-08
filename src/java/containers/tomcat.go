@@ -555,68 +555,93 @@ func extractVersion(config string) string {
 	return ""
 }
 
+func injectDocBase(xmlContent string, docBase string) string {
+	idx := strings.Index(xmlContent, "<Context")
+	if idx == -1 {
+		return xmlContent
+	}
+
+	endIdx := strings.Index(xmlContent[idx:], ">")
+	if endIdx == -1 {
+		return xmlContent
+	}
+	endIdx += idx
+
+	contextTag := xmlContent[idx:endIdx]
+
+	for strings.Contains(contextTag, "docBase=") {
+		docBaseIdx := strings.Index(contextTag, "docBase=")
+
+		if docBaseIdx+8 >= len(contextTag) {
+			break
+		}
+		quote := contextTag[docBaseIdx+8]
+		if quote != '"' && quote != '\'' {
+			break
+		}
+
+		endQuoteIdx := strings.Index(contextTag[docBaseIdx+9:], string(quote))
+		if endQuoteIdx == -1 {
+			break
+		}
+		endQuoteIdx += docBaseIdx + 9
+
+		before := strings.TrimSpace(contextTag[:docBaseIdx])
+		after := strings.TrimSpace(contextTag[endQuoteIdx+1:])
+		if before != "" && after != "" {
+			contextTag = before + " " + after
+		} else {
+			contextTag = before + after
+		}
+	}
+
+	newContextTag := strings.Replace(contextTag, "<Context", `<Context docBase="`+docBase+`"`, 1)
+
+	return xmlContent[:idx] + newContextTag + xmlContent[endIdx:]
+}
+
 // Finalize performs final Tomcat configuration
 func (t *TomcatContainer) Finalize() error {
 	t.context.Log.BeginStep("Finalizing Tomcat")
 
 	buildDir := t.context.Stager.BuildDir()
-	tomcatDir := filepath.Join(t.context.Stager.DepDir(), "tomcat")
+	contextXMLPath := filepath.Join(t.context.Stager.DepDir(), "tomcat", "conf", "Catalina", "localhost", "ROOT.xml")
 
-	// Check if we have an exploded WAR (WEB-INF directory in BuildDir)
 	webInf := filepath.Join(buildDir, "WEB-INF")
 	if _, err := os.Stat(webInf); err == nil {
-		// Configure Tomcat to serve the application from BuildDir
-		// This follows the immutable BuildDir pattern: application stays where deployed
-		t.context.Log.Info("Configuring Tomcat to serve exploded WAR from BuildDir")
-
-		// Create a custom context.xml file that points to BuildDir
-		// At runtime, $HOME will resolve to the application directory
-		if err := t.configureContextDocBase(tomcatDir); err != nil {
-			return fmt.Errorf("failed to configure Tomcat context: %w", err)
+		contextXMLDir := filepath.Dir(contextXMLPath)
+		if err := os.MkdirAll(contextXMLDir, 0755); err != nil {
+			return fmt.Errorf("failed to create context directory: %w", err)
 		}
 
-		t.context.Log.Info("Tomcat configured to serve application from $HOME (BuildDir)")
+		appContextXML := filepath.Join(buildDir, "META-INF", "context.xml")
+		var contextContent string
+
+		if _, err := os.Stat(appContextXML); err == nil {
+			xmlBytes, err := os.ReadFile(appContextXML)
+			if err != nil {
+				return fmt.Errorf("failed to read META-INF/context.xml: %w", err)
+			}
+
+			xmlStr := string(xmlBytes)
+			xmlStr = strings.TrimSpace(xmlStr)
+
+			contextContent = injectDocBase(xmlStr, "${user.home}/app")
+			t.context.Log.Info("Merged META-INF/context.xml with ROOT.xml - realm and resource configurations preserved")
+		} else {
+			contextContent = fmt.Sprintf("<Context docBase=\"${user.home}/app\" reloadable=\"false\">\n</Context>\n")
+			t.context.Log.Info("Created ROOT.xml with docBase pointing to application directory")
+		}
+
+		if err := os.WriteFile(contextXMLPath, []byte(contextContent), 0644); err != nil {
+			return fmt.Errorf("failed to write ROOT.xml: %w", err)
+		}
 	}
-
-	// Tomcat support JARs are already installed directly to tomcat/lib during Supply phase
-	// No additional configuration needed in Finalize phase
-
-	// JVMKill agent is configured by JRE component in JAVA_OPTS
 
 	return nil
 }
 
-// configureContextDocBase creates a context configuration that points to BuildDir
-func (t *TomcatContainer) configureContextDocBase(tomcatHome string) error {
-	// Create conf/Catalina/localhost directory if it doesn't exist
-	contextDir := filepath.Join(tomcatHome, "conf", "Catalina", "localhost")
-	if err := os.MkdirAll(contextDir, 0755); err != nil {
-		return fmt.Errorf("failed to create context directory: %w", err)
-	}
-
-	// Create ROOT.xml context file
-	// This tells Tomcat to serve the ROOT webapp from BuildDir (the application directory)
-	// Tomcat supports ${propertyName} syntax for system properties in context.xml
-	contextFile := filepath.Join(contextDir, "ROOT.xml")
-	contextXML := `<?xml version="1.0" encoding="UTF-8"?>
-<Context docBase="${user.home}/app" reloadable="false">
-    <!-- Application served from BuildDir (/home/vcap/app), not moved to DepDir -->
-    <!-- At runtime: user.home system property = /home/vcap, so we use ${user.home}/app -->
-</Context>
-`
-
-	if err := os.WriteFile(contextFile, []byte(contextXML), 0644); err != nil {
-		return fmt.Errorf("failed to write context file: %w", err)
-	}
-
-	t.context.Log.Debug("Created Tomcat context configuration: %s", contextFile)
-	return nil
-}
-
-// configureTomcatSupport copies Tomcat lifecycle support JAR to Tomcat's lib directory
-// This ensures the JAR is loaded early enough for logging initialization
 // Release returns the Tomcat startup command
-// Uses $CATALINA_HOME which is set by profile.d/tomcat.sh at runtime
 func (t *TomcatContainer) Release() (string, error) {
 	// Use $CATALINA_HOME environment variable set by profile.d script
 	// Profile.d scripts run BEFORE the release command at runtime (same as $JAVA_HOME)

@@ -662,14 +662,76 @@ var _ = Describe("Container Registry", func() {
 			container.Detect()
 		})
 
-		It("finalizes successfully", func() {
+		It("finalizes successfully without META-INF/context.xml", func() {
 			err := container.Finalize()
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify context configuration was created
 			tomcatDir := filepath.Join(depsDir, "0", "tomcat")
 			contextFile := filepath.Join(tomcatDir, "conf", "Catalina", "localhost", "ROOT.xml")
 			Expect(contextFile).To(BeAnExistingFile())
+
+			content, err := os.ReadFile(contextFile)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("docBase=\"${user.home}/app\""))
+			Expect(string(content)).To(ContainSubstring("reloadable=\"false\""))
+		})
+
+		It("merges META-INF/context.xml with realm configuration", func() {
+			metaInfDir := filepath.Join(buildDir, "META-INF")
+			os.MkdirAll(metaInfDir, 0755)
+
+			contextXML := `<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+  <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+         resourceName="UserDatabase"/>
+  <Resource name="jdbc/TestDB"
+            auth="Container"
+            type="javax.sql.DataSource"/>
+</Context>`
+			os.WriteFile(filepath.Join(metaInfDir, "context.xml"), []byte(contextXML), 0644)
+
+			err := container.Finalize()
+			Expect(err).NotTo(HaveOccurred())
+
+			tomcatDir := filepath.Join(depsDir, "0", "tomcat")
+			contextFile := filepath.Join(tomcatDir, "conf", "Catalina", "localhost", "ROOT.xml")
+			Expect(contextFile).To(BeAnExistingFile())
+
+			content, err := os.ReadFile(contextFile)
+			Expect(err).NotTo(HaveOccurred())
+			contentStr := string(content)
+
+			Expect(contentStr).To(ContainSubstring("docBase=\"${user.home}/app\""))
+			Expect(contentStr).To(ContainSubstring("org.apache.catalina.realm.UserDatabaseRealm"))
+			Expect(contentStr).To(ContainSubstring("resourceName=\"UserDatabase\""))
+			Expect(contentStr).To(ContainSubstring("jdbc/TestDB"))
+			Expect(contentStr).To(ContainSubstring("javax.sql.DataSource"))
+		})
+
+		It("handles META-INF/context.xml with existing docBase attribute", func() {
+			metaInfDir := filepath.Join(buildDir, "META-INF")
+			os.MkdirAll(metaInfDir, 0755)
+
+			contextXML := `<?xml version="1.0" encoding="UTF-8"?>
+<Context docBase="/old/path" reloadable="true">
+  <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+         resourceName="UserDatabase"/>
+</Context>`
+			os.WriteFile(filepath.Join(metaInfDir, "context.xml"), []byte(contextXML), 0644)
+
+			err := container.Finalize()
+			Expect(err).NotTo(HaveOccurred())
+
+			tomcatDir := filepath.Join(depsDir, "0", "tomcat")
+			contextFile := filepath.Join(tomcatDir, "conf", "Catalina", "localhost", "ROOT.xml")
+
+			content, err := os.ReadFile(contextFile)
+			Expect(err).NotTo(HaveOccurred())
+			contentStr := string(content)
+
+			Expect(contentStr).To(ContainSubstring("docBase=\"${user.home}/app\""))
+			Expect(contentStr).NotTo(ContainSubstring("/old/path"))
+			Expect(contentStr).To(ContainSubstring("org.apache.catalina.realm.UserDatabaseRealm"))
 		})
 	})
 
