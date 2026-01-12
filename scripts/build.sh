@@ -14,9 +14,6 @@ function main() {
   util::tools::jq::install --directory "${ROOTDIR}/.bin"
 
   IFS=" " read -r -a oses <<< "$(jq -r -S '.oses[]' "${ROOTDIR}/config.json" | xargs)"
-  local arch
-  arch="$(jq -r '.arches[0]' "${ROOTDIR}/config.json")"
-
   mapfile -t binaries < <(find "${ROOTDIR}/src" -mindepth 2 -name cli -type d)
 
   for os in "${oses[@]}"; do
@@ -31,7 +28,7 @@ function main() {
 
       CGO_ENABLED=0 \
       GOOS="${os}" \
-      GOARCH="${arch}" \
+      GOARCH=amd64 \
         go build \
           -mod vendor \
           -ldflags="-s -w" \
