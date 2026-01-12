@@ -14,6 +14,7 @@ function main() {
   util::tools::jq::install --directory "${ROOTDIR}/.bin"
 
   IFS=" " read -r -a oses <<< "$(jq -r -S '.oses[]' "${ROOTDIR}/config.json" | xargs)"
+
   mapfile -t binaries < <(find "${ROOTDIR}/src" -mindepth 2 -name cli -type d)
 
   for os in "${oses[@]}"; do
