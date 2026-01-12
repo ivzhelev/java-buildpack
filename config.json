@@ -3,9 +3,6 @@
   "oses": [
     "linux"
   ],
-  "arches": [
-    "amd64"
-  ],  
   "integration": {
     "harness": "switchblade",
     "matrix": [
