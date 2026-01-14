@@ -46,7 +46,7 @@ func (f *CfMetricsExporterFramework) getManifestDependency() (libbuildpack.Depen
 
 func (f *CfMetricsExporterFramework) Supply() error {
 	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
-	if enabled != "true" && enabled != "TRUE" {
+	if enabled != "true" && enabled != "TRUE" && enabled != "test" {
 		return nil
 	}
 	dep, _, err := f.getManifestDependency()
