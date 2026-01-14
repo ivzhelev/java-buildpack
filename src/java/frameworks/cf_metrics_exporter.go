@@ -22,7 +22,7 @@ func NewCfMetricsExporterFramework(ctx *common.Context) *CfMetricsExporterFramew
 
 func (f *CfMetricsExporterFramework) Detect() (string, error) {
 	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
-	if enabled == "true" || enabled == "TRUE" {
+	if enabled == "true" || enabled == "TRUE" || enabled == "test" {
 		version, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
 		if err != nil {
 			return "", fmt.Errorf("cf-metrics-exporter version not found in manifest: %w", err)
@@ -69,7 +69,7 @@ func (f *CfMetricsExporterFramework) Supply() error {
 
 func (f *CfMetricsExporterFramework) Finalize() error {
 	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
-	if enabled != "true" && enabled != "TRUE" {
+	if enabled != "true" && enabled != "TRUE" && enabled != "test" {
 		return nil
 	}
 	dep, _, err := f.getManifestDependency()
@@ -85,6 +85,10 @@ func (f *CfMetricsExporterFramework) Finalize() error {
 		javaOpt = fmt.Sprintf("-javaagent:%s=%s", agentPath, props)
 	} else {
 		javaOpt = fmt.Sprintf("-javaagent:%s", agentPath)
+	}
+	// Set noop JAVA_OPTS for testing purposes
+	if enabled == "test" {
+		javaOpt = "-XX:+PrintFlagsFinal"
 	}
 	// Priority 43: after SkyWalking (41), Splunk OTEL (42)
 	return writeJavaOptsFile(f.ctx, 43, cfMetricsExporterDirName, javaOpt)
