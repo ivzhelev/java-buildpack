@@ -537,6 +537,14 @@ dependencies:
   cf_stacks:
   - cflinuxfs4
 
+# cf-metrics-exporter Agent
+- name: cf_metrics_exporter
+  version: 0.7.1
+  uri: https://github.com/rabobank/cf-metrics-exporter/releases/download/0.7.1/cf-metrics-exporter-0.7.1.jar
+  sha256: 7ebabd3ffd812082cf92a513c8d2ac52906f5b42cd952cbe740bd5d5b086e79b
+  cf_stacks:
+  - cflinuxfs4
+
 # Container Security Provider
 # Note: Always enabled by default, provides container-specific security context
 - name: container-security-provider

@@ -1,0 +1,89 @@
+package frameworks
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/cloudfoundry/java-buildpack/src/java/common"
+	"github.com/cloudfoundry/libbuildpack"
+)
+
+const cfMetricsExporterDependencyName = "cf_metrics_exporter"
+
+type CfMetricsExporterFramework struct {
+	ctx *common.Context
+}
+
+func NewCfMetricsExporterFramework(ctx *common.Context) *CfMetricsExporterFramework {
+	return &CfMetricsExporterFramework{ctx: ctx}
+}
+
+func (f *CfMetricsExporterFramework) Detect() (string, error) {
+	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
+	if enabled == "true" || enabled == "TRUE" {
+		version, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
+		if err != nil {
+			return "cf-metrics-exporter", nil // fallback if version not found
+		}
+		return fmt.Sprintf("cf-metrics-exporter=%s", version), nil
+	}
+	return "", nil
+}
+
+func (f *CfMetricsExporterFramework) getManifestDependency() (libbuildpack.Dependency, *libbuildpack.ManifestEntry, error) {
+	dep, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
+	if err != nil {
+		return libbuildpack.Dependency{}, nil, fmt.Errorf("cf_metrics_exporter version not found in manifest: %w", err)
+	}
+	entry, err := f.ctx.Manifest.GetEntry(dep)
+	if err != nil {
+		return dep, nil, fmt.Errorf("cf_metrics_exporter manifest entry not found: %w", err)
+	}
+	return dep, entry, nil
+}
+
+func (f *CfMetricsExporterFramework) Supply() error {
+	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
+	if enabled != "true" && enabled != "TRUE" {
+		return nil
+	}
+	dep, _, err := f.getManifestDependency()
+	if err != nil {
+		return err
+	}
+	agentDir := filepath.Join(f.ctx.Stager.DepDir(), ".java-buildpack", "cf_metrics_exporter")
+	if err := os.MkdirAll(agentDir, 0755); err != nil {
+		return fmt.Errorf("failed to create agent dir: %w", err)
+	}
+	jarName := fmt.Sprintf("cf-metrics-exporter-%s.jar", dep.Version)
+	agentPath := filepath.Join(agentDir, jarName)
+	if _, err := os.Stat(agentPath); os.IsNotExist(err) {
+		if err := f.ctx.Installer.InstallDependency(dep, agentPath); err != nil {
+			return fmt.Errorf("failed to download cf-metrics-exporter: %w", err)
+		}
+	}
+	return nil
+}
+
+func (f *CfMetricsExporterFramework) Finalize() error {
+	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
+	if enabled != "true" && enabled != "TRUE" {
+		return nil
+	}
+	dep, _, err := f.getManifestDependency()
+	if err != nil {
+		return err
+	}
+	jarName := fmt.Sprintf("cf-metrics-exporter-%s.jar", dep.Version)
+	agentPath := filepath.Join(".java-buildpack", "cf_metrics_exporter", jarName)
+	props := os.Getenv("CF_METRICS_EXPORTER_PROPS")
+	var javaOpt string
+	if props != "" {
+		javaOpt = fmt.Sprintf("-javaagent:%s=%s", agentPath, props)
+	} else {
+		javaOpt = fmt.Sprintf("-javaagent:%s", agentPath)
+	}
+	// Priority 43: after SkyWalking (41), Splunk OTEL (42)
+	return writeJavaOptsFile(f.ctx, 43, "cf_metrics_exporter", javaOpt)
+}
