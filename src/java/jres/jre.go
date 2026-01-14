@@ -2,11 +2,12 @@ package jres
 
 import (
 	"fmt"
-	"github.com/cloudfoundry/java-buildpack/src/java/common"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/cloudfoundry/java-buildpack/src/java/common"
 	"github.com/cloudfoundry/libbuildpack"
 )
 
@@ -214,10 +215,23 @@ func GetJREVersion(ctx *common.Context, jreName string) (libbuildpack.Dependency
 	// Check for legacy JBP_CONFIG_<JRE_NAME> environment variable
 	envKey := fmt.Sprintf("JBP_CONFIG_%s", strings.ToUpper(strings.ReplaceAll(jreName, "-", "_")))
 	if envVal := os.Getenv(envKey); envVal != "" {
-		// Parse version from env (e.g., '{jre: {version: 11.+}}')
-		// For now, simplified - just log it
-		ctx.Log.Debug("JRE version override from %s: %s", envKey, envVal)
-		// TODO: Parse YAML-like config from envVal
+		versionPattern := parseJBPConfigVersion(envVal)
+		if versionPattern == "" {
+			return libbuildpack.Dependency{}, fmt.Errorf("could not parse version from %s='%s'", envKey, envVal)
+		}
+
+		normalizedPattern := normalizeVersionPattern(versionPattern)
+		availableVersions := ctx.Manifest.AllDependencyVersions(jreName)
+		if len(availableVersions) == 0 {
+			return libbuildpack.Dependency{}, fmt.Errorf("no versions of %s found in manifest", jreName)
+		}
+
+		matchedVersion, err := libbuildpack.FindMatchingVersion(normalizedPattern, availableVersions)
+		if err != nil {
+			return libbuildpack.Dependency{}, fmt.Errorf("no version of %s matching '%s' found in manifest. Available versions: %v", jreName, versionPattern, availableVersions)
+		}
+
+		return libbuildpack.Dependency{Name: jreName, Version: matchedVersion}, nil
 	}
 
 	// Get default version from manifest (no version constraint)
@@ -229,16 +243,23 @@ func GetJREVersion(ctx *common.Context, jreName string) (libbuildpack.Dependency
 	return dep, nil
 }
 
-// normalizeVersionPattern converts user-friendly version strings to manifest patterns
-// Examples: "8" -> "8.*", "11" -> "11.*", "17.0" -> "17.0.*", "11.+" -> "11.+"
 func normalizeVersionPattern(version string) string {
-	// If already has wildcard, return as-is
-	if strings.Contains(version, "*") || strings.Contains(version, "+") {
+	if strings.Contains(version, "+") {
+		return strings.ReplaceAll(version, "+", "*")
+	}
+	if strings.Contains(version, "*") {
 		return version
 	}
-
-	// Otherwise append ".*" to match any patch version
 	return version + ".*"
+}
+
+func parseJBPConfigVersion(configValue string) string {
+	re := regexp.MustCompile(`version:\s*['"]?([0-9]+[0-9.*+]*)['"]?`)
+	matches := re.FindStringSubmatch(configValue)
+	if len(matches) >= 2 {
+		return strings.TrimSpace(matches[1])
+	}
+	return ""
 }
 
 // WriteJavaOpts writes JAVA_OPTS to a .opts file for centralized assembly

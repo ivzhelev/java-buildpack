@@ -268,8 +268,35 @@ dependencies:
 				dep, err := jres.GetJREVersion(ctx, "openjdk")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(dep.Name).To(Equal("openjdk"))
-				// Should match default version 17.x
 				Expect(dep.Version).To(ContainSubstring("17."))
+			})
+		})
+
+		Context("with JBP_CONFIG_OPENJDK", func() {
+			AfterEach(func() {
+				os.Unsetenv("JBP_CONFIG_OPENJDK")
+			})
+
+			It("resolves version from JBP_CONFIG", func() {
+				os.Setenv("JBP_CONFIG_OPENJDK", "{jre: {version: 11.+}}")
+				dep, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dep.Name).To(Equal("openjdk"))
+				Expect(dep.Version).To(Equal("11.0.25"))
+			})
+
+			It("fails when requested version does not exist", func() {
+				os.Setenv("JBP_CONFIG_OPENJDK", "{jre: {version: 99.+}}")
+				_, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("no version of openjdk matching"))
+			})
+
+			It("fails when config format is invalid", func() {
+				os.Setenv("JBP_CONFIG_OPENJDK", "invalid config")
+				_, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("could not parse version"))
 			})
 		})
 	})
