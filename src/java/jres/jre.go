@@ -213,23 +213,42 @@ func GetJREVersion(ctx *common.Context, jreName string) (libbuildpack.Dependency
 	}
 
 	// Check for legacy JBP_CONFIG_<JRE_NAME> environment variable
+	// For OpenJDK, support both JBP_CONFIG_OPENJDK and JBP_CONFIG_OPEN_JDK_JRE for backward compatibility
 	envKey := fmt.Sprintf("JBP_CONFIG_%s", strings.ToUpper(strings.ReplaceAll(jreName, "-", "_")))
-	if envVal := os.Getenv(envKey); envVal != "" {
+	envVal := os.Getenv(envKey)
+
+	// Special case for OpenJDK: also check JBP_CONFIG_OPEN_JDK_JRE (documented name)
+	if envVal == "" && jreName == "openjdk" {
+		envVal = os.Getenv("JBP_CONFIG_OPEN_JDK_JRE")
+		if envVal != "" {
+			envKey = "JBP_CONFIG_OPEN_JDK_JRE"
+		}
+	}
+
+	if envVal != "" {
+		ctx.Log.Debug("Found %s='%s'", envKey, envVal)
+
 		versionPattern := parseJBPConfigVersion(envVal)
 		if versionPattern == "" {
 			return libbuildpack.Dependency{}, fmt.Errorf("could not parse version from %s='%s'", envKey, envVal)
 		}
+		ctx.Log.Debug("Parsed version pattern from %s: '%s'", envKey, versionPattern)
 
 		normalizedPattern := normalizeVersionPattern(versionPattern)
+		ctx.Log.Debug("Normalized pattern: '%s' -> '%s'", versionPattern, normalizedPattern)
+
 		availableVersions := ctx.Manifest.AllDependencyVersions(jreName)
 		if len(availableVersions) == 0 {
 			return libbuildpack.Dependency{}, fmt.Errorf("no versions of %s found in manifest", jreName)
 		}
+		ctx.Log.Debug("Available versions for %s: %v", jreName, availableVersions)
 
 		matchedVersion, err := libbuildpack.FindMatchingVersion(normalizedPattern, availableVersions)
 		if err != nil {
+			ctx.Log.Debug("FindMatchingVersion failed: %s", err.Error())
 			return libbuildpack.Dependency{}, fmt.Errorf("no version of %s matching '%s' found in manifest. Available versions: %v", jreName, versionPattern, availableVersions)
 		}
+		ctx.Log.Debug("Matched version: %s", matchedVersion)
 
 		return libbuildpack.Dependency{Name: jreName, Version: matchedVersion}, nil
 	}

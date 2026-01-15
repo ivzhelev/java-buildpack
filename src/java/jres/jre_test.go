@@ -299,6 +299,50 @@ dependencies:
 				Expect(err.Error()).To(ContainSubstring("could not parse version"))
 			})
 		})
+
+		Context("with JBP_CONFIG_OPEN_JDK_JRE", func() {
+			AfterEach(func() {
+				os.Unsetenv("JBP_CONFIG_OPEN_JDK_JRE")
+			})
+
+			It("resolves version 21.+ pattern", func() {
+				os.Setenv("JBP_CONFIG_OPEN_JDK_JRE", "{jre: {version: 21.+}}")
+				dep, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dep.Name).To(Equal("openjdk"))
+				Expect(dep.Version).To(Equal("21.0.5"))
+			})
+
+			It("resolves version 17.+ pattern", func() {
+				os.Setenv("JBP_CONFIG_OPEN_JDK_JRE", "{jre: {version: 17.+}}")
+				dep, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dep.Name).To(Equal("openjdk"))
+				Expect(dep.Version).To(Equal("17.0.13"))
+			})
+
+			It("resolves version 11.+ pattern", func() {
+				os.Setenv("JBP_CONFIG_OPEN_JDK_JRE", "{jre: {version: 11.+}}")
+				dep, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dep.Name).To(Equal("openjdk"))
+				Expect(dep.Version).To(Equal("11.0.25"))
+			})
+
+			It("fails when requested version does not exist", func() {
+				os.Setenv("JBP_CONFIG_OPEN_JDK_JRE", "{jre: {version: 99.+}}")
+				_, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("no version of openjdk matching"))
+			})
+
+			It("prefers JBP_CONFIG_OPEN_JDK_JRE over default when both are unset", func() {
+				os.Setenv("JBP_CONFIG_OPEN_JDK_JRE", "{jre: {version: 21.+}}")
+				dep, err := jres.GetJREVersion(ctx, "openjdk")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dep.Version).To(Equal("21.0.5"))
+			})
+		})
 	})
 
 	Describe("DetermineJavaVersion", func() {
