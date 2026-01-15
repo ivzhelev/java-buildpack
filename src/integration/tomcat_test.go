@@ -135,7 +135,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "containers", "tomcat_javax"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 8."))
 				Expect(logs.String()).To(ContainSubstring("Tomcat 9"))
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
@@ -148,7 +148,7 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 11."))
 				Expect(logs.String()).To(ContainSubstring("Tomcat 10"))
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
@@ -161,24 +161,24 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 17."))
 				Expect(logs.String()).To(ContainSubstring("Tomcat 10"))
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
 
 		context("with memory limits", func() {
-			it("respects memory calculator settings", func() {
+			it("respects memory calculator settings with JAVA_OPTS", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
-						"BP_JAVA_VERSION":         "11",
-						"JAVA_OPTS":               "-Xmx256m",
-						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 11.+}}",
+						"BP_JAVA_VERSION": "11",
+						"JAVA_OPTS":       "-Xmx256m",
 					}).
 					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 11."))
 				Expect(logs.String()).To(ContainSubstring("memory"))
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
@@ -215,19 +215,14 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 				deployment, logs, err := platform.Deploy.
 					WithBuildpacks("https://github.com/cloudfoundry/java-buildpack.git#feature/go-migration").
 					WithEnv(map[string]string{
-						"BP_JAVA_VERSION":         "21",
-						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 21.+}}",
+						"BP_JAVA_VERSION": "21",
 					}).
 					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
 
 				Expect(err).NotTo(HaveOccurred(), logs.String)
 
-				// Verify Java 21 is used
-				Expect(logs.String()).To(ContainSubstring("OpenJDK"))
-				Expect(logs.String()).To(Or(
-					ContainSubstring("21."),
-					ContainSubstring("Tomcat"),
-				))
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 21."))
+				Expect(logs.String()).To(ContainSubstring("Tomcat"))
 
 				// If deployment succeeds, it means:
 				// 1. bin/detect succeeded (detected Tomcat)
@@ -235,6 +230,34 @@ func testTomcat(platform switchblade.Platform, fixtures string) func(*testing.T,
 				// 3. bin/finalize succeeded (configured app)
 				// 4. bin/release succeeded (output valid YAML) <- THIS IS THE BUG FIX
 				// 5. App started and responds to requests
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
+			})
+		})
+
+		context("with JBP_CONFIG_OPEN_JDK_JRE version selection", func() {
+			it("respects JBP_CONFIG_OPEN_JDK_JRE version pattern", func() {
+				deployment, logs, err := platform.Deploy.
+					WithEnv(map[string]string{
+						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 17.+}}",
+					}).
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
+
+				Expect(err).NotTo(HaveOccurred(), logs.String)
+
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 17."))
+				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
+			})
+
+			it("respects JBP_CONFIG_OPEN_JDK_JRE over manifest default", func() {
+				deployment, logs, err := platform.Deploy.
+					WithEnv(map[string]string{
+						"JBP_CONFIG_OPEN_JDK_JRE": "{jre: {version: 21.+}}",
+					}).
+					Execute(name, filepath.Join(fixtures, "containers", "tomcat_jakarta"))
+
+				Expect(err).NotTo(HaveOccurred(), logs.String)
+
+				Expect(logs.String()).To(ContainSubstring("Installing OpenJDK 21."))
 				Eventually(deployment).Should(matchers.Serve(ContainSubstring("OK")))
 			})
 		})
