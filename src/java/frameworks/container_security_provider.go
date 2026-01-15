@@ -139,6 +139,13 @@ func (c *ContainerSecurityProviderFramework) writeSecurityProperties() error {
 		content += fmt.Sprintf("security.provider.%d=%s\n", i+2, provider)
 	}
 
+	// Disable JVM DNS caching in lieu of BOSH DNS caching
+	// BOSH DNS is always present in Cloud Foundry and provides its own caching layer
+	// Setting TTL to 0 ensures the JVM always queries BOSH DNS for fresh results
+	content += "\n# Disable JVM DNS caching (BOSH DNS provides caching)\n"
+	content += "networkaddress.cache.ttl=0\n"
+	content += "networkaddress.cache.negative.ttl=0\n"
+
 	if err := os.WriteFile(securityFile, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write security properties file: %w", err)
 	}

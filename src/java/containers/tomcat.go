@@ -93,10 +93,7 @@ func (t *TomcatContainer) Supply() error {
 	if dep.Version == "" {
 		dep, err = t.context.Manifest.DefaultVersion("tomcat")
 		if err != nil {
-			t.context.Log.Warning("Unable to determine default Tomcat version")
-			// Final fallback to a known version
-			dep.Name = "tomcat"
-			dep.Version = "9.0.98"
+			return fmt.Errorf("failed to determine Tomcat version: no JAVA_HOME set and no default version in manifest: %w", err)
 		}
 	}
 
