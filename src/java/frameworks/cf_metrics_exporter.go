@@ -21,7 +21,7 @@ type Installer interface {
 }
 
 type CfMetricsExporterFramework struct {
-	ctx       *common.Context
+	context   *common.Context
 	installer Installer
 }
 
@@ -30,13 +30,13 @@ func NewCfMetricsExporterFramework(ctx *common.Context) *CfMetricsExporterFramew
 	if installer == nil {
 		installer = libbuildpack.NewInstaller(ctx.Manifest)
 	}
-	return &CfMetricsExporterFramework{ctx: ctx, installer: installer}
+	return &CfMetricsExporterFramework{context: ctx, installer: installer}
 }
 
 func (f *CfMetricsExporterFramework) Detect() (string, error) {
 	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
 	if enabled == "true" || enabled == "TRUE" {
-		_, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
+		_, err := f.context.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
 		if err != nil {
 			return "", fmt.Errorf("cf-metrics-exporter version not found in manifest: %w", err)
 		}
@@ -46,11 +46,11 @@ func (f *CfMetricsExporterFramework) Detect() (string, error) {
 }
 
 func (f *CfMetricsExporterFramework) getManifestDependency() (libbuildpack.Dependency, *libbuildpack.ManifestEntry, error) {
-	dep, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
+	dep, err := f.context.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
 	if err != nil {
 		return libbuildpack.Dependency{}, nil, fmt.Errorf("cf-metrics-exporter version not found in manifest: %w", err)
 	}
-	entry, err := f.ctx.Manifest.GetEntry(dep)
+	entry, err := f.context.Manifest.GetEntry(dep)
 	if err != nil {
 		return dep, nil, fmt.Errorf("cf-metrics-exporter manifest entry not found: %w", err)
 	}
@@ -66,7 +66,7 @@ func (f *CfMetricsExporterFramework) Supply() error {
 	if err != nil {
 		return err
 	}
-	agentDir := filepath.Join(f.ctx.Stager.DepDir(), cfMetricsExporterDirName)
+	agentDir := filepath.Join(f.context.Stager.DepDir(), cfMetricsExporterDirName)
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
 		return fmt.Errorf("failed to create agent dir: %w", err)
 	}
@@ -91,6 +91,16 @@ func (f *CfMetricsExporterFramework) Supply() error {
 			}
 		}
 	}
+	version, err := f.context.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
+	if err != nil {
+		return fmt.Errorf("cf-metrics-exporter version not found in manifest: %w", err)
+	}
+	props := os.Getenv("CF_METRICS_EXPORTER_PROPS")
+	if props != "" {
+		f.context.Log.BeginStep("CF Metrics Exporter v%s enabled, with properties: %s", version.Version, props)
+	} else {
+		f.context.Log.BeginStep("CF Metrics Exporter v%s enabled", version.Version)
+	}
 	return nil
 }
 
@@ -104,7 +114,7 @@ func (f *CfMetricsExporterFramework) Finalize() error {
 		return err
 	}
 	jarName := fmt.Sprintf("cf-metrics-exporter-%s.jar", dep.Version)
-	depsIdx := f.ctx.Stager.DepsIdx()
+	depsIdx := f.context.Stager.DepsIdx()
 	agentPath := fmt.Sprintf("$DEPS_DIR/%s/cf_metrics_exporter/%s", depsIdx, jarName)
 	props := os.Getenv("CF_METRICS_EXPORTER_PROPS")
 	var javaOpt string
@@ -114,5 +124,5 @@ func (f *CfMetricsExporterFramework) Finalize() error {
 		javaOpt = fmt.Sprintf("-javaagent:%s", agentPath)
 	}
 	// Priority 43: after SkyWalking (41), Splunk OTEL (42)
-	return writeJavaOptsFile(f.ctx, 43, cfMetricsExporterDirName, javaOpt)
+	return writeJavaOptsFile(f.context, 43, cfMetricsExporterDirName, javaOpt)
 }
