@@ -27,8 +27,7 @@ func (j *JmxFramework) Detect() (string, error) {
 		return "", nil
 	}
 
-	port := j.getPort()
-	return fmt.Sprintf("JMX (port %d)", port), nil
+	return "JMX", nil
 }
 
 // Supply performs JMX setup during supply phase

@@ -36,11 +36,11 @@ func NewCfMetricsExporterFramework(ctx *common.Context) *CfMetricsExporterFramew
 func (f *CfMetricsExporterFramework) Detect() (string, error) {
 	enabled := os.Getenv("CF_METRICS_EXPORTER_ENABLED")
 	if enabled == "true" || enabled == "TRUE" {
-		version, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
+		_, err := f.ctx.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
 		if err != nil {
 			return "", fmt.Errorf("cf-metrics-exporter version not found in manifest: %w", err)
 		}
-		return fmt.Sprintf("%s (%s)", version.Name, version.Version), nil
+		return "CF Metrics Exporter", nil
 	}
 	return "", nil
 }
