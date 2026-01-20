@@ -62,45 +62,39 @@ func (f *CfMetricsExporterFramework) Supply() error {
 	if enabled != "true" && enabled != "TRUE" {
 		return nil
 	}
+
 	dep, _, err := f.getManifestDependency()
 	if err != nil {
 		return err
 	}
+
 	agentDir := filepath.Join(f.context.Stager.DepDir(), cfMetricsExporterDirName)
+	jarName := fmt.Sprintf("cf-metrics-exporter-%s.jar", dep.Version)
+	jarPath := filepath.Join(agentDir, jarName)
+
+	// Ensure agent directory exists
 	if err := os.MkdirAll(agentDir, 0755); err != nil {
 		return fmt.Errorf("failed to create agent dir: %w", err)
 	}
-	jarName := fmt.Sprintf("cf-metrics-exporter-%s.jar", dep.Version)
-	jarPath := filepath.Join(agentDir, jarName)
+
+	// Download the JAR if not present
 	if _, err := os.Stat(jarPath); os.IsNotExist(err) {
 		if err := f.installer.InstallDependency(dep, agentDir); err != nil {
 			return fmt.Errorf("failed to download cf-metrics-exporter: %w", err)
 		}
-		// Find the actual JAR file and rename if needed
-		files, err := os.ReadDir(agentDir)
-		if err != nil {
-			return fmt.Errorf("failed to read agent dir: %w", err)
-		}
-		for _, file := range files {
-			if filepath.Ext(file.Name()) == ".jar" && file.Name() != jarName {
-				src := filepath.Join(agentDir, file.Name())
-				if err := os.Rename(src, jarPath); err != nil {
-					return fmt.Errorf("failed to rename jar: %w", err)
-				}
-				break
-			}
+		if _, err := os.Stat(jarPath); err != nil {
+			return fmt.Errorf("expected jar file not found after download: %w", err)
 		}
 	}
-	version, err := f.context.Manifest.DefaultVersion(cfMetricsExporterDependencyName)
-	if err != nil {
-		return fmt.Errorf("cf-metrics-exporter version not found in manifest: %w", err)
-	}
+
+	// Log activation, including properties if set
 	props := os.Getenv("CF_METRICS_EXPORTER_PROPS")
 	if props != "" {
-		f.context.Log.BeginStep("CF Metrics Exporter v%s enabled, with properties: %s", version.Version, props)
+		f.context.Log.Info("CF Metrics Exporter v%s enabled, with properties: %s", dep.Version, props)
 	} else {
-		f.context.Log.BeginStep("CF Metrics Exporter v%s enabled", version.Version)
+		f.context.Log.Info("CF Metrics Exporter v%s enabled", dep.Version)
 	}
+
 	return nil
 }
 
