@@ -103,13 +103,16 @@ func (f *CfMetricsExporterFramework) Finalize() error {
 	if enabled != "true" && enabled != "TRUE" {
 		return nil
 	}
+
 	dep, _, err := f.getManifestDependency()
 	if err != nil {
 		return err
 	}
+
 	jarName := fmt.Sprintf("cf-metrics-exporter-%s.jar", dep.Version)
 	depsIdx := f.context.Stager.DepsIdx()
 	agentPath := fmt.Sprintf("$DEPS_DIR/%s/cf_metrics_exporter/%s", depsIdx, jarName)
+
 	props := os.Getenv("CF_METRICS_EXPORTER_PROPS")
 	var javaOpt string
 	if props != "" {
@@ -117,6 +120,7 @@ func (f *CfMetricsExporterFramework) Finalize() error {
 	} else {
 		javaOpt = fmt.Sprintf("-javaagent:%s", agentPath)
 	}
+
 	// Priority 43: after SkyWalking (41), Splunk OTEL (42)
 	return writeJavaOptsFile(f.context, 43, cfMetricsExporterDirName, javaOpt)
 }
