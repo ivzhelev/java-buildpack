@@ -259,7 +259,6 @@ var _ = Describe("Framework Registry", func() {
 		It("detects no frameworks when no services are bound", func() {
 			registry.Register(frameworks.NewNewRelicFramework(ctx))
 			registry.Register(frameworks.NewAppDynamicsFramework(ctx))
-			registry.Register(frameworks.NewDynatraceFramework(ctx))
 
 			detected, names, err := registry.DetectAll()
 			Expect(err).NotTo(HaveOccurred())
@@ -270,7 +269,6 @@ var _ = Describe("Framework Registry", func() {
 		It("detects multiple frameworks", func() {
 			registry.Register(frameworks.NewNewRelicFramework(ctx))
 			registry.Register(frameworks.NewAppDynamicsFramework(ctx))
-			registry.Register(frameworks.NewDynatraceFramework(ctx))
 
 			vcapJSON := `{
 				"newrelic": [{
@@ -407,65 +405,6 @@ var _ = Describe("AppDynamics Framework", func() {
 				name, err := framework.Detect()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(name).To(Equal("AppDynamics Agent"))
-			})
-		})
-	})
-})
-
-var _ = Describe("Dynatrace Framework", func() {
-	var (
-		ctx       *common.Context
-		framework frameworks.Framework
-		tmpDir    string
-	)
-
-	BeforeEach(func() {
-		var err error
-		tmpDir, err = os.MkdirTemp("", "java-buildpack-test-*")
-		Expect(err).NotTo(HaveOccurred())
-
-		logger := libbuildpack.NewLogger(os.Stdout)
-		stager := libbuildpack.NewStager([]string{tmpDir, "", "0"}, logger, &libbuildpack.Manifest{})
-
-		ctx = &common.Context{
-			Stager: stager,
-			Log:    logger,
-		}
-
-		framework = frameworks.NewDynatraceFramework(ctx)
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpDir)
-		os.Unsetenv("VCAP_SERVICES")
-	})
-
-	Describe("Detect", func() {
-		Context("without service binding", func() {
-			It("does not detect", func() {
-				name, err := framework.Detect()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(name).To(BeEmpty())
-			})
-		})
-
-		Context("with Dynatrace service", func() {
-			It("detects successfully", func() {
-				vcapJSON := `{
-					"dynatrace": [{
-						"name": "dynatrace-service",
-						"label": "dynatrace",
-						"credentials": {
-							"environmentid": "test-env",
-							"apitoken": "test-token"
-						}
-					}]
-				}`
-				os.Setenv("VCAP_SERVICES", vcapJSON)
-
-				name, err := framework.Detect()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(name).To(Equal("Dynatrace OneAgent"))
 			})
 		})
 	})

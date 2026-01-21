@@ -47,7 +47,6 @@ func (r *Registry) RegisterStandardFrameworks() {
 	// APM Agents (Priority 1)
 	r.Register(NewNewRelicFramework(r.context))
 	r.Register(NewAppDynamicsFramework(r.context))
-	r.Register(NewDynatraceFramework(r.context))
 	r.Register(NewDatadogJavaagentFramework(r.context))
 	r.Register(NewElasticApmAgentFramework(r.context))
 
