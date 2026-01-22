@@ -123,9 +123,15 @@ func GetVCAPServices() (VCAPServices, error) {
 }
 
 // HasService checks if a service with the given label exists
+// Matching is case-insensitive to handle various service broker conventions
 func (v VCAPServices) HasService(label string) bool {
-	_, exists := v[label]
-	return exists
+	labelLower := strings.ToLower(label)
+	for key := range v {
+		if strings.ToLower(key) == labelLower {
+			return true
+		}
+	}
+	return false
 }
 
 // GetService returns the first service with the given label
@@ -139,11 +145,13 @@ func (v VCAPServices) GetService(label string) *VCAPService {
 }
 
 // HasTag checks if any service has the given tag
+// Matching is case-insensitive to handle various service broker tag conventions
 func (v VCAPServices) HasTag(tag string) bool {
+	tagLower := strings.ToLower(tag)
 	for _, serviceList := range v {
 		for _, service := range serviceList {
 			for _, t := range service.Tags {
-				if t == tag {
+				if strings.ToLower(t) == tagLower {
 					return true
 				}
 			}
@@ -152,30 +160,26 @@ func (v VCAPServices) HasTag(tag string) bool {
 	return false
 }
 
-// HasServiceByNamePattern checks if any service in "user-provided" matches the pattern
-// This is needed for Docker platform where services are under "user-provided" label
+// HasServiceByNamePattern checks if any service matches the pattern
 // Pattern matching is case-insensitive substring matching
+// Searches across all service labels, not just "user-provided"
 func (v VCAPServices) HasServiceByNamePattern(pattern string) bool {
 	return v.GetServiceByNamePattern(pattern) != nil
 }
 
-// GetServiceByNamePattern returns the first service in "user-provided" that matches the pattern
+// GetServiceByNamePattern returns the first service that matches the pattern
 // Returns nil if no matching service is found
 // Pattern matching is case-insensitive substring matching (e.g., "newrelic" matches "my-newrelic-service")
+// Searches across all service labels, not just "user-provided"
 func (v VCAPServices) GetServiceByNamePattern(pattern string) *VCAPService {
-	userProvided, exists := v["user-provided"]
-	if !exists {
-		return nil
-	}
-
-	// Case-insensitive substring matching
 	patternLower := strings.ToLower(pattern)
-	for _, service := range userProvided {
-		if strings.Contains(strings.ToLower(service.Name), patternLower) {
-			return &service
+	for _, services := range v {
+		for _, service := range services {
+			if strings.Contains(strings.ToLower(service.Name), patternLower) {
+				return &service
+			}
 		}
 	}
-
 	return nil
 }
 

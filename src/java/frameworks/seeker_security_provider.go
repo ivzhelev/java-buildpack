@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cloudfoundry/libbuildpack"
 )
@@ -186,36 +185,30 @@ func (s *SeekerSecurityProviderFramework) findSeekerService() (map[string]interf
 		return nil, fmt.Errorf("failed to parse VCAP_SERVICES: %w", err)
 	}
 
-	// Search for service with "seeker" in name, label, or tags
 	for serviceType, serviceList := range services {
-		// Check if service type contains "seeker"
-		if strings.Contains(strings.ToLower(serviceType), "seeker") {
+		if common.ContainsIgnoreCase(serviceType, "seeker") {
 			if len(serviceList) > 0 {
 				return serviceList[0], nil
 			}
 		}
 
-		// Check individual services
 		for _, service := range serviceList {
-			// Check service name
 			if name, ok := service["name"].(string); ok {
-				if strings.Contains(strings.ToLower(name), "seeker") {
+				if common.ContainsIgnoreCase(name, "seeker") {
 					return service, nil
 				}
 			}
 
-			// Check service label
 			if label, ok := service["label"].(string); ok {
-				if strings.Contains(strings.ToLower(label), "seeker") {
+				if common.ContainsIgnoreCase(label, "seeker") {
 					return service, nil
 				}
 			}
 
-			// Check service tags
 			if tags, ok := service["tags"].([]interface{}); ok {
 				for _, tag := range tags {
 					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "seeker") {
+						if common.ContainsIgnoreCase(tagStr, "seeker") {
 							return service, nil
 						}
 					}

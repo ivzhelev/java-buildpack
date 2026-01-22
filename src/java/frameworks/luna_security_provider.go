@@ -174,15 +174,12 @@ func (l *LunaSecurityProviderFramework) writeCredentials() error {
 	}
 
 	// Find Luna service (try multiple lookup patterns)
-	// VCAPServices is a map[string][]VCAPService where keys are service labels
 	var credentials map[string]interface{}
 
-	// Iterate over all service labels and services
 	for label, services := range vcapServices {
 		for _, service := range services {
-			// Check if service name or label contains "luna"
-			if strings.Contains(strings.ToLower(service.Name), "luna") ||
-				strings.Contains(strings.ToLower(label), "luna") {
+			if common.ContainsIgnoreCase(service.Name, "luna") ||
+				common.ContainsIgnoreCase(label, "luna") {
 				credentials = service.Credentials
 				break
 			}

@@ -1,8 +1,8 @@
 package frameworks
 
 import (
-	"github.com/cloudfoundry/java-buildpack/src/java/common"
 	"fmt"
+	"github.com/cloudfoundry/java-buildpack/src/java/common"
 	"os"
 	"path/filepath"
 
@@ -106,19 +106,17 @@ func (p *PostgresqlJdbcFramework) hasPostgresService() bool {
 	// Verify the service has a 'uri' credential
 	for _, services := range vcapServices {
 		for _, service := range services {
-			// Check if service name, label, or tags contain "postgres"
-			nameMatch := contains(service.Name, "postgres")
-			labelMatch := false
+			nameMatch := common.ContainsIgnoreCase(service.Name, "postgres")
 			tagMatch := false
 
 			for _, tag := range service.Tags {
-				if contains(tag, "postgres") {
+				if common.ContainsIgnoreCase(tag, "postgres") {
 					tagMatch = true
 					break
 				}
 			}
 
-			if nameMatch || labelMatch || tagMatch {
+			if nameMatch || tagMatch {
 				if _, hasURI := service.Credentials["uri"]; hasURI {
 					return true
 				}
