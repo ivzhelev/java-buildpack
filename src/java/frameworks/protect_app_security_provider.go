@@ -308,36 +308,30 @@ func (p *ProtectAppSecurityProviderFramework) findProtectAppService() (map[strin
 		return nil, fmt.Errorf("failed to parse VCAP_SERVICES: %w", err)
 	}
 
-	// Search for service with "protectapp" in name, label, or tags
 	for serviceType, serviceList := range services {
-		// Check if service type contains "protectapp"
-		if strings.Contains(strings.ToLower(serviceType), "protectapp") {
+		if common.ContainsIgnoreCase(serviceType, "protectapp") {
 			if len(serviceList) > 0 {
 				return serviceList[0], nil
 			}
 		}
 
-		// Check individual services
 		for _, service := range serviceList {
-			// Check service name
 			if name, ok := service["name"].(string); ok {
-				if strings.Contains(strings.ToLower(name), "protectapp") {
+				if common.ContainsIgnoreCase(name, "protectapp") {
 					return service, nil
 				}
 			}
 
-			// Check service label
 			if label, ok := service["label"].(string); ok {
-				if strings.Contains(strings.ToLower(label), "protectapp") {
+				if common.ContainsIgnoreCase(label, "protectapp") {
 					return service, nil
 				}
 			}
 
-			// Check service tags
 			if tags, ok := service["tags"].([]interface{}); ok {
 				for _, tag := range tags {
 					if tagStr, ok := tag.(string); ok {
-						if strings.Contains(strings.ToLower(tagStr), "protectapp") {
+						if common.ContainsIgnoreCase(tagStr, "protectapp") {
 							return service, nil
 						}
 					}

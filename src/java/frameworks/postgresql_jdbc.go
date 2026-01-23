@@ -119,7 +119,7 @@ func (p *PostgresqlJdbcFramework) hasPostgresService() bool {
 				}
 			}
 
-			if nameMatch || labelMatch || tagMatch {
+			if nameMatch || tagMatch {
 				if _, hasURI := service.Credentials["uri"]; hasURI {
 					return true
 				}

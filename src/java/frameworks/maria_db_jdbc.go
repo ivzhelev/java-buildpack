@@ -125,14 +125,12 @@ func (f *MariaDBJDBCFramework) hasMariaDBService() bool {
 	// Verify the service has a 'uri' credential
 	for _, services := range vcapServices {
 		for _, service := range services {
-			// Check if service name, label, or tags contain "mysql" or "mariadb"
-			nameMatch := contains(strings.ToLower(service.Name), "mysql") ||
-				contains(strings.ToLower(service.Name), "mariadb")
+			nameMatch := common.ContainsIgnoreCase(service.Name, "mysql") ||
+				common.ContainsIgnoreCase(service.Name, "mariadb")
 			tagMatch := false
 
 			for _, tag := range service.Tags {
-				tagLower := strings.ToLower(tag)
-				if contains(tagLower, "mysql") || contains(tagLower, "mariadb") {
+				if common.ContainsIgnoreCase(tag, "mysql") || common.ContainsIgnoreCase(tag, "mariadb") {
 					tagMatch = true
 					break
 				}
