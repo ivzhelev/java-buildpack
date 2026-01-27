@@ -142,39 +142,22 @@ func (e *ElasticApmAgentFramework) findElasticApmService() *VCAPService {
 		return nil
 	}
 
-	// Use helper methods for detection
-	// Elastic APM can be bound as:
-	// - "elastic-apm" service (marketplace or label)
-	// - Services with "elastic-apm" or "elastic" tag
-	// - User-provided services with these patterns in the name (Docker platform)
-	if vcapServices.HasService("elastic-apm") ||
-		vcapServices.HasService("elastic") ||
-		vcapServices.HasTag("elastic-apm") ||
-		vcapServices.HasTag("elastic") {
-		// Return first elastic-apm service from any label
-		for _, services := range vcapServices {
-			if len(services) > 0 {
-				// Check if this service has elastic-apm tags or credentials
-				for _, service := range services {
-					for _, tag := range service.Tags {
-						if strings.Contains(strings.ToLower(tag), "elastic") {
-							return &service
-						}
-					}
-				}
-			}
-		}
+	if vcapServices.HasService("elastic-apm") {
+		return vcapServices.GetService("elastic-apm")
+	}
+	if vcapServices.HasService("elastic") {
+		return vcapServices.GetService("elastic")
 	}
 
-	// Check user-provided services by name pattern
-	if vcapServices.HasServiceByNamePattern("elastic-apm") ||
-		vcapServices.HasServiceByNamePattern("elastic") {
-		// Look for service with elastic in the name
-		if userProvided, ok := vcapServices["user-provided"]; ok {
-			for _, service := range userProvided {
-				if strings.Contains(strings.ToLower(service.Name), "elastic") {
+	for _, services := range vcapServices {
+		for _, service := range services {
+			for _, tag := range service.Tags {
+				if common.ContainsIgnoreCase(tag, "elastic-apm") || common.ContainsIgnoreCase(tag, "elastic") {
 					return &service
 				}
+			}
+			if common.ContainsIgnoreCase(service.Name, "elastic-apm") || common.ContainsIgnoreCase(service.Name, "elastic") {
+				return &service
 			}
 		}
 	}
