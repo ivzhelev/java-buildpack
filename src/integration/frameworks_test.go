@@ -599,8 +599,8 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 				it("detects and enables CF Metrics Exporter", func() {
 					deployment, logs, err := platform.Deploy.
 						WithEnv(map[string]string{
-							"BP_JAVA_VERSION":                "11",
-							"JBP_CONFIG_CF_METRICS_EXPORTER": "'{enabled: true}'",
+							"BP_JAVA_VERSION":             "11",
+							"CF_METRICS_EXPORTER_ENABLED": "true",
 						}).
 						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
@@ -616,9 +616,9 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					props := "debug,enableLogEmitter,intervalSeconds=30"
 					deployment, logs, err := platform.Deploy.
 						WithEnv(map[string]string{
-							"BP_JAVA_VERSION":                "11",
-							"JBP_CONFIG_CF_METRICS_EXPORTER": "'{enabled: true}'",
-							"CF_METRICS_EXPORTER_PROPS":      props,
+							"BP_JAVA_VERSION":             "11",
+							"CF_METRICS_EXPORTER_ENABLED": "true",
+							"CF_METRICS_EXPORTER_PROPS":   props,
 						}).
 						Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
