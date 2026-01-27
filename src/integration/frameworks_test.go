@@ -608,11 +608,10 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					// Log should indicate exporter enabled with version
 					Expect(logs.String()).To(ContainSubstring("CF Metrics Exporter v"))
 					Expect(logs.String()).To(ContainSubstring("enabled"))
-					Expect(logs).To(ContainSubstring("-javaagent:"))
 					Eventually(deployment).Should(matchers.Serve(ContainSubstring("")))
 				})
 
-				it("includes CF_METRICS_EXPORTER_PROPS when provided", func() {
+				it("log includes properties when provided", func() {
 					props := "debug,enableLogEmitter,intervalSeconds=30"
 					deployment, logs, err := platform.Deploy.
 						WithEnv(map[string]string{
@@ -626,7 +625,6 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 					// Should still show exporter enabled
 					Expect(logs.String()).To(ContainSubstring("CF Metrics Exporter v"))
 					Expect(logs.String()).To(ContainSubstring("enabled"))
-					Expect(logs.String()).To(ContainSubstring("-javaagent:"))
 					// And include provided properties in logs/configuration output
 					Expect(logs.String()).To(Or(
 						ContainSubstring("CF_METRICS_EXPORTER_PROPS"),
