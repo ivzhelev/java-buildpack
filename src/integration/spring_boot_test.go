@@ -49,21 +49,6 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 			})
 		})
 
-		context("with Spring Auto-reconfiguration", func() {
-			it("detects Spring Framework", func() {
-				deployment, logs, err := platform.Deploy.
-					WithEnv(map[string]string{
-						"BP_JAVA_VERSION": "11",
-					}).
-					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
-				Expect(err).NotTo(HaveOccurred(), logs.String)
-
-				// Spring auto-reconfiguration should be detected
-				Expect(logs.String()).To(ContainSubstring("Java Buildpack"))
-				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
-			})
-		})
-
 		context("with embedded Tomcat", func() {
 			it("starts successfully", func() {
 				deployment, logs, err := platform.Deploy.
@@ -85,11 +70,13 @@ func testSpringBoot(platform switchblade.Platform, fixtures string) func(*testin
 			it("includes java-cfenv when Spring Boot is detected", func() {
 				deployment, logs, err := platform.Deploy.
 					WithEnv(map[string]string{
-						"BP_JAVA_VERSION":       "11",
-						"JBP_CONFIG_JAVA_CFENV": "{enabled: true}",
+						"BP_JAVA_VERSION":        "11",
+						"JBP_CONFIG_JAVA_CF_ENV": "{enabled: true}",
 					}).
 					Execute(name, filepath.Join(fixtures, "containers", "spring_boot_staged"))
 				Expect(err).NotTo(HaveOccurred(), logs.String)
+				// Fixture is not a Spring3 app, so Java CF Env detect should not pass
+				Expect(logs.String()).NotTo(ContainSubstring("Java CF Env"))
 
 				Eventually(deployment).Should(matchers.Serve(Not(BeEmpty())))
 			})

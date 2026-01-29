@@ -671,6 +671,7 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						}).
 						WithEnv(map[string]string{
 							"BP_JAVA_VERSION":                        "11",
+							"JBP_CONFIG_JAVA_CF_ENV":                 "'{enabled: false}'",
 							"JBP_CONFIG_SPRING_AUTO_RECONFIGURATION": "'{enabled: true}'",
 						}).
 						Execute(name, filepath.Join(fixtures, "frameworks", "auto_reconfiguration_servlet_3"))
@@ -678,6 +679,8 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 
 					// Spring Auto-reconfiguration should be detected for Spring apps with services
 					Expect(logs.String()).To(ContainSubstring("Spring Auto-reconfiguration"))
+					// Spring Auto-reconfiguration should only be provided in the absence of Java Cf Env
+					Expect(logs.String()).NotTo(ContainSubstring("Java CF Env"))
 					Eventually(deployment).Should(matchers.Serve(ContainSubstring("")))
 				})
 
@@ -695,6 +698,8 @@ func testFrameworks(platform switchblade.Platform, fixtures string) func(*testin
 						Execute(name, filepath.Join(fixtures, "frameworks", "auto_reconfiguration_servlet_3"))
 					Expect(err).NotTo(HaveOccurred(), logs.String)
 
+					// Java Cf Env should be provided as it is enabled by default for Spring3 apps
+					Expect(logs.String()).To(ContainSubstring("Java CF Env"))
 					// Should not install when explicitly disabled
 					Expect(logs.String()).NotTo(ContainSubstring("Spring Auto-reconfiguration"))
 					Eventually(deployment).Should(matchers.Serve(ContainSubstring("")))
