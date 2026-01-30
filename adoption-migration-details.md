@@ -74,8 +74,8 @@ Custom JRE usage will be supported only as documented in the [Custom JRE Usage G
 
 ### Changed Default Configuration
 
-- **SpringAutoReconfigurationFramework is now disabled by default.** Please note that `SpringAutoReconfigurationFramework` is deprecated, and the recommended alternative is [java-cfenv](httpss://github.com/pivotal-cf/java-cfenv).
-- **JRE selection based on `JBP_CONFIG_COMPONENTS` is deprecated.** The Go-based buildpack supports JRE selection based on `JBP_CONFIG_&lt;JRE_TYPE&gt;` as described in the [README](https://github.com/cloudfoundry/java-buildpack/blob/feature/go-migration/README.md#jre-selection).
+- **SpringAutoReconfigurationFramework is now disabled by default.** Please note that `SpringAutoReconfigurationFramework` is deprecated, and the recommended alternative is [java-cfenv](https://github.com/pivotal-cf/java-cfenv).
+- **JRE selection based on `JBP_CONFIG_COMPONENTS` is deprecated.** The Go-based buildpack supports JRE selection based on `JBP_CONFIG_<JRE_TYPE>` as described in the [README](https://github.com/cloudfoundry/java-buildpack/blob/feature/go-migration/README.md#jre-selection).
 
 ### Frameworks Not Included
 
